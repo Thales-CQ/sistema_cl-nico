@@ -233,3 +233,40 @@ Resultado registrado:
 - Configuração correta de proxy/origem.
 - Limitação de tentativas de login.
 - Mecanismo futuro de revogação server-side de sessões roubadas.
+
+## Versão 0.0.6
+
+### Status
+
+CONCLUÍDA
+
+### Objetivo
+
+Implementar a autenticação no frontend integrada ao backend da versão 0.0.5.
+
+### Principais alterações
+
+- Tela de login responsiva e acessível.
+- `AuthContext` e `AuthProvider`.
+- Restauração automática da sessão via `/auth/me`.
+- Login e logout integrados à API.
+- CSRF mantido somente em memória.
+- Sem JWT, `localStorage` ou `sessionStorage`.
+- `AuthLayout` e `MainLayout` reutilizáveis.
+- Componente `Button` reutilizável.
+- Estilos organizados com tokens CSS e preparação para temas.
+- Estrutura mobile-first.
+- Tratamento amigável de falhas de rede.
+- Proxy Vite preservando Origin/Host com `changeOrigin: false`.
+
+### Testes realizados
+
+- `npm run lint`: PASS.
+- `npm run build`: PASS.
+- Testes do backend: 58 passed.
+- `git diff --check`: PASS.
+- Validação manual no navegador: PASS nos seis pontos definidos.
+
+### Commits correspondentes
+
+- `5db5998` — feat: adiciona autenticacao no frontend
