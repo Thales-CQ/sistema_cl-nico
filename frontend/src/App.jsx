@@ -1,40 +1,27 @@
-import { useEffect, useState } from "react";
-import { healthCheck } from "./services/api";
+import { useAuth } from "./hooks/useAuth";
+import AuthLayout from "./layouts/AuthLayout/AuthLayout";
+import MainLayout from "./layouts/MainLayout/MainLayout";
+import Login from "./pages/Login/Login";
+import Button from "./components/Button/Button";
 
-function App() {
-  const [status, setStatus] = useState("Verificando servidor...");
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    async function checkServer() {
-      try {
-        const data = await healthCheck();
-
-        if (data.status === "ok") {
-          setStatus("Backend online");
-        } else {
-          setStatus("Resposta inesperada do servidor");
-        }
-      } catch (err) {
-        setStatus("Backend offline");
-        setError(err.message);
-      }
-    }
-
-    checkServer();
-  }, []);
-
-  return (
-    <main>
-      <h1>Sistema Clínico</h1>
-
-      <p>Status da comunicação:</p>
-
-      <strong>{status}</strong>
-
-      {error && <p>{error}</p>}
-    </main>
-  );
+export default function App() {
+  const {
+    initialLoading, initialCheckFailed, isAuthenticated,
+    operationLoading, retrySessionCheck,
+  } = useAuth();
+  if (initialLoading) {
+    return <AuthLayout><p role="status">Carregando...</p></AuthLayout>;
+  }
+  if (initialCheckFailed) {
+    return (
+      <AuthLayout>
+        <p role="alert">Não foi possível conectar ao sistema. Tente novamente.</p>
+        {operationLoading && <p role="status">Carregando...</p>}
+        <Button disabled={operationLoading} onClick={retrySessionCheck}>
+          Tentar novamente
+        </Button>
+      </AuthLayout>
+    );
+  }
+  return isAuthenticated ? <MainLayout /> : <Login />;
 }
-
-export default App;

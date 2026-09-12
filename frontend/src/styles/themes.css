@@ -1,0 +1,20 @@
+/* The current light theme; future themes can override these semantic tokens. */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+  --color-background: #f3f5f8;
+  --color-surface: #ffffff;
+  --color-text: #172334;
+  --color-text-secondary: #526174;
+  --color-primary: #2457a7;
+  --color-primary-hover: #194580;
+  --color-on-primary: #ffffff;
+  --color-border: #7b8797;
+  --color-border-subtle: #d6dde6;
+  --color-error: #a51d2d;
+  --color-error-background: #fff1f2;
+  --color-focus: #2457a7;
+  --color-disabled-background: #e5eaf0;
+  --color-disabled-text: #526174;
+  --color-hover-background: #edf2f8;
+}
