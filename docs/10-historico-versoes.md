@@ -129,3 +129,52 @@ Resultado registrado:
 ### Commits correspondentes
 
 - `fc06e86` — feat: cria base de usuarios e migrations
+
+## Versão 0.0.4
+
+### Status
+
+CONCLUÍDA
+
+### Objetivo
+
+Criar de forma segura o primeiro usuário administrador do sistema.
+
+### Principais alterações
+
+- Criação do comando Flask CLI `create-admin`.
+- Solicitação interativa de username e senha.
+- Senha oculta durante a digitação.
+- Confirmação de senha.
+- Normalização do username com `strip()` e conversão para minúsculas (`lower()`).
+- Validação de username vazio.
+- Exigência mínima de 12 caracteres na senha.
+- Bloqueio de username duplicado.
+- Uso de `set_password()` para armazenamento somente em hash.
+- Criação de testes automatizados do comando.
+- Isolamento dos testes com SQLite em memória, sem acessar o MySQL real.
+
+### Testes realizados
+
+- Comando `create-admin` registrado e funcionando.
+- Senha curta rejeitada.
+- Criação válida confirmada.
+- Hash da senha verificado.
+- Username duplicado rejeitado.
+- Usuário real verificado no MySQL.
+
+Comando executado no diretório `backend`:
+
+```bash
+python -m pytest -q
+```
+
+Resultado registrado:
+
+```text
+6 passed in 1.40s
+```
+
+### Commits correspondentes
+
+- `19036aa` — feat: adiciona criacao segura de administrador
