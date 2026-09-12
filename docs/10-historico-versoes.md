@@ -84,3 +84,48 @@ Resultado registrado:
 - `ddae06e`
 - `35bb244`
 - `44d0f7b`
+
+## Versão 0.0.3
+
+### Status
+
+CONCLUÍDA
+
+### Objetivo
+
+Criar a base de usuários do sistema.
+
+### Principais alterações
+
+- Criação do pacote `app/models`.
+- Criação do model `User`.
+- Campos `id`, `username`, `password_hash`, `is_active` e `created_at`.
+- Armazenamento de senha através de hash.
+- Métodos `set_password()` e `check_password()`.
+- Inicialização do Flask-Migrate/Alembic.
+- Primeira migration.
+- Criação da tabela `users` no MySQL.
+- Índice único para `username`.
+- Criação dos testes automatizados do model `User`.
+
+### Testes realizados
+
+- Migration aplicada com sucesso no MySQL.
+- Tabela `users` verificada diretamente no banco.
+- Índice único `ix_users_username` verificado.
+
+Comando executado no diretório `backend`:
+
+```bash
+python -m pytest -q
+```
+
+Resultado registrado:
+
+```text
+3 passed in 1.16s
+```
+
+### Commits correspondentes
+
+- `fc06e86` — feat: cria base de usuarios e migrations
