@@ -178,3 +178,58 @@ Resultado registrado:
 ### Commits correspondentes
 
 - `19036aa` — feat: adiciona criacao segura de administrador
+
+## Versão 0.0.5
+
+### Status
+
+CONCLUÍDA
+
+### Objetivo
+
+Implementar a autenticação backend baseada em sessão segura.
+
+### Principais alterações
+
+- `POST /api/v1/auth/login`.
+- `GET /api/v1/auth/me`.
+- `POST /api/v1/auth/logout`.
+- Autenticação baseada em sessão Flask.
+- Sessão contendo somente `user_id`.
+- Cookie `HttpOnly`.
+- `SameSite=Lax`.
+- `Secure` configurável conforme ambiente.
+- Duração da sessão de 30 minutos.
+- Rejeição genérica para usuário inexistente, senha incorreta e usuário inativo.
+- Revalidação do usuário em `/me`.
+- Proteção CSRF com token assinado.
+- Validação adicional de `Origin`.
+- Testes isolados usando SQLite em memória.
+- Sem JWT, localStorage, alterações no frontend, roles ou permissions.
+
+### Testes realizados
+
+Comando executado no diretório `backend`:
+
+```bash
+python -m pytest -q
+```
+
+Resultado registrado:
+
+```text
+58 passed in 8.98s
+```
+
+### Commits correspondentes
+
+- `a7a843b` — feat: adiciona autenticacao backend com sessao segura
+
+### Pendências deliberadas para produção
+
+- HTTPS.
+- `SESSION_COOKIE_SECURE=true`.
+- `SECRET_KEY` forte no ambiente.
+- Configuração correta de proxy/origem.
+- Limitação de tentativas de login.
+- Mecanismo futuro de revogação server-side de sessões roubadas.
