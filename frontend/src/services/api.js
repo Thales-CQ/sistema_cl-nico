@@ -33,6 +33,9 @@ function apiError(response, data) {
   const error = new Error(data?.error || "Não foi possível concluir a operação.");
   error.status = response.status;
   error.isCsrf = response.status === 403 && data?.error === "Token CSRF inválido.";
+  if (data?.errors && typeof data.errors === "object") {
+    error.errors = data.errors;
+  }
   return error;
 }
 
@@ -79,6 +82,26 @@ export function logout() {
 
 export async function healthCheck() {
   const { response, data } = await request("/health");
+  if (!response.ok) throw apiError(response, data);
+  return data;
+}
+
+export async function getPatients() {
+  const { response, data } = await request("/patients?page=1&per_page=100");
+  if (!response.ok) throw apiError(response, data);
+  return data;
+}
+
+export async function createPatient(payload) {
+  if (!csrfToken) await readSession();
+  const { response, data } = await request("/patients", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRF-Token": csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
   if (!response.ok) throw apiError(response, data);
   return data;
 }

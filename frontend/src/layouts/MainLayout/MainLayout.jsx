@@ -2,7 +2,7 @@ import Button from "../../components/Button/Button";
 import { useAuth } from "../../hooks/useAuth";
 import "./MainLayout.css";
 
-export default function MainLayout() {
+export default function MainLayout({ children }) {
   const { user, logout, operationLoading, error } = useAuth();
   return (
     <main className="main-layout">
@@ -16,6 +16,7 @@ export default function MainLayout() {
         {operationLoading && (
           <p className="main-layout__status" role="status">Aguarde, processando solicitação...</p>
         )}
+        {children}
         <div className="main-layout__actions">
           <Button disabled={operationLoading} onClick={logout}>Sair</Button>
         </div>

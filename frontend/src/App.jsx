@@ -2,6 +2,7 @@ import { useAuth } from "./hooks/useAuth";
 import AuthLayout from "./layouts/AuthLayout/AuthLayout";
 import MainLayout from "./layouts/MainLayout/MainLayout";
 import Login from "./pages/Login/Login";
+import Patients from "./pages/Patients/Patients";
 import Button from "./components/Button/Button";
 
 export default function App() {
@@ -23,5 +24,5 @@ export default function App() {
       </AuthLayout>
     );
   }
-  return isAuthenticated ? <MainLayout /> : <Login />;
+  return isAuthenticated ? <MainLayout><Patients /></MainLayout> : <Login />;
 }

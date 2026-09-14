@@ -57,12 +57,20 @@ def test_login_and_me(client, username):
     assert "password_hash" not in response.get_data(as_text=True)
     assert PASSWORD not in response.get_data(as_text=True)
     with client.session_transaction() as session:
-        assert dict(session) == {"user_id": 1}
+        assert dict(session) == {"user_id": 1, "_permanent": True}
     response = client.get(f"{BASE}/me")
     assert response.status_code == 200
     assert set(response.json["user"]) == {"id", "username"}
     assert "password_hash" not in response.get_data(as_text=True)
     assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_login_marks_session_permanent(client):
+    response = login(client)
+
+    assert response.status_code == 200
+    with client.session_transaction() as session:
+        assert session.permanent is True
 
 
 @pytest.mark.parametrize("failure", ["unknown", "password", "inactive"])
@@ -112,6 +120,27 @@ def test_invalid_json(client, body, content_type):
         headers=csrf_headers(client),
     )
     assert response.status_code == 400
+
+
+def test_login_rejects_json_body_larger_than_64_kib(client):
+    import json
+
+    headers = csrf_headers(client)
+    body = json.dumps(
+        {"username": "admin", "password": PASSWORD}
+    ).encode("utf-8")
+    body += b" " * (64 * 1024)
+
+    assert len(body) > 64 * 1024
+
+    response = client.post(
+        f"{BASE}/login",
+        data=body,
+        content_type="application/json",
+        headers=headers,
+    )
+
+    assert response.status_code == 413
 
 
 def test_me_without_session(client):
@@ -169,7 +198,7 @@ def test_login_clears_previous_session(client):
     )
     assert response.status_code == 200
     with client.session_transaction() as session:
-        assert dict(session) == {"user_id": 1}
+        assert dict(session) == {"user_id": 1, "_permanent": True}
     response = login(client, password="wrong")
     assert response.status_code == 401
     with client.session_transaction() as session:
@@ -191,7 +220,10 @@ def test_cookie_attributes(app, client, secure):
 
 
 @pytest.mark.parametrize("endpoint", ["login", "logout"])
-@pytest.mark.parametrize("attack", ["missing", "mismatch", "forged", "origin", "null_origin"])
+@pytest.mark.parametrize(
+    "attack",
+    ["missing", "mismatch", "forged", "origin", "null_origin"],
+)
 def test_csrf_rejected(client, endpoint, attack):
     assert login(client).status_code == 200
     headers = csrf_headers(client)
@@ -201,7 +233,7 @@ def test_csrf_rejected(client, endpoint, attack):
         headers["X-CSRF-Token"] = "different"
     elif attack == "forged":
         headers["X-CSRF-Token"] = "forged"
-        client.set_cookie("auth_csrf", "forged", path="/api/v1/auth")
+        client.set_cookie("auth_csrf", "forged", path="/api/v1")
     else:
         headers["Origin"] = "null" if attack == "null_origin" else "https://evil.example"
     response = client.post(
@@ -220,7 +252,7 @@ def test_login_requires_csrf_even_when_anonymous(client):
 def test_csrf_bound_to_authenticated_user(client):
     old_headers = csrf_headers(client)
     assert login(client).status_code == 200
-    client.set_cookie("auth_csrf", old_headers["X-CSRF-Token"], path="/api/v1/auth")
+    client.set_cookie("auth_csrf", old_headers["X-CSRF-Token"], path="/api/v1")
     assert client.post(f"{BASE}/logout", headers=old_headers).status_code == 403
 
 
@@ -253,3 +285,72 @@ def test_expired_csrf(client, monkeypatch):
         past.setattr(TimestampSigner, "get_timestamp", lambda self: original(self) - 1801)
         headers = csrf_headers(client)
     assert client.post(f"{BASE}/logout", headers=headers).status_code == 403
+
+
+def test_csrf_cookie_path_and_legacy_expiration(client):
+    from datetime import datetime, timezone
+    from email.utils import parsedate_to_datetime
+    from http.cookies import SimpleCookie
+
+    client.set_cookie("auth_csrf", "legacy-token", path="/api/v1/auth")
+
+    response = client.get(f"{BASE}/me")
+
+    assert response.status_code == 401
+    csrf_cookies = {}
+    for header in response.headers.getlist("Set-Cookie"):
+        cookie = SimpleCookie()
+        cookie.load(header)
+        if "auth_csrf" in cookie:
+            morsel = cookie["auth_csrf"]
+            csrf_cookies[morsel["path"]] = morsel
+
+    assert set(csrf_cookies) == {"/api/v1", "/api/v1/auth"}
+    assert csrf_cookies["/api/v1"].value == response.json["csrf_token"]
+    legacy = csrf_cookies["/api/v1/auth"]
+    assert legacy.value == ""
+    assert legacy["max-age"] == "0"
+    assert parsedate_to_datetime(legacy["expires"]) < datetime.now(timezone.utc)
+    current = client.get_cookie("auth_csrf", path="/api/v1")
+    assert current is not None
+    assert current.value == response.json["csrf_token"]
+    assert client.get_cookie("auth_csrf", path="/api/v1/auth") is None
+
+
+def test_login_logout_with_api_csrf_cookie(client):
+    origin = "http:" + "//localhost"
+    response = client.get(f"{BASE}/me")
+    assert response.status_code == 401
+    token = response.json["csrf_token"]
+    cookie = client.get_cookie("auth_csrf", path="/api/v1")
+    assert cookie is not None
+    assert cookie.value == token
+    assert client.get_cookie("auth_csrf", path="/api/v1/auth") is None
+
+    response = client.post(
+        f"{BASE}/login",
+        json={"username": "admin", "password": PASSWORD},
+        headers={"X-CSRF-Token": token, "Origin": origin},
+    )
+    assert response.status_code == 200
+    assert response.json["user"] == {"id": 1, "username": "admin"}
+    with client.session_transaction() as session:
+        assert dict(session) == {"user_id": 1, "_permanent": True}
+    token = response.json["csrf_token"]
+    cookie = client.get_cookie("auth_csrf", path="/api/v1")
+    assert cookie is not None
+    assert cookie.value == token
+    assert client.get_cookie("auth_csrf", path="/api/v1/auth") is None
+
+    response = client.post(
+        f"{BASE}/logout",
+        headers={"X-CSRF-Token": token, "Origin": origin},
+    )
+    assert response.status_code == 200
+    assert response.json["message"] == "Sessão encerrada."
+    with client.session_transaction() as session:
+        assert dict(session) == {}
+    cookie = client.get_cookie("auth_csrf", path="/api/v1")
+    assert cookie is not None
+    assert cookie.value == response.json["csrf_token"]
+    assert client.get_cookie("auth_csrf", path="/api/v1/auth") is None

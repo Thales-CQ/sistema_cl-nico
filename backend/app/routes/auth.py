@@ -1,37 +1,41 @@
-import hmac
 import secrets
 
 from flask import Blueprint, current_app, jsonify, request, session
-from itsdangerous import BadData, URLSafeTimedSerializer
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from app.extensions import db
 from app.models import User
+from app.security import (
+    CSRF_COOKIE,
+    generate_csrf_token,
+    protect_csrf,
+    resolve_active_user,
+)
 
 
 auth_bp = Blueprint("auth", __name__)
+auth_bp.before_request(protect_csrf)
 _DUMMY_HASH = generate_password_hash(secrets.token_urlsafe(32))
-_CSRF_COOKIE = "auth_csrf"
-
-
-def _csrf_signer():
-    return URLSafeTimedSerializer(current_app.secret_key, salt="auth-csrf-v1")
 
 
 def _response(payload, status=200):
-    # Signed double-submit token: separate from the session, bound to its user.
-    token = _csrf_signer().dumps(
-        {"user_id": session.get("user_id"), "nonce": secrets.token_urlsafe(32)}
-    )
+    token = generate_csrf_token()
     response = jsonify({**payload, "csrf_token": token})
     response.status_code = status
     response.set_cookie(
-        _CSRF_COOKIE,
+        CSRF_COOKIE,
         token,
         httponly=True,
         secure=current_app.config["SESSION_COOKIE_SECURE"],
         samesite="Lax",
+        path="/api/v1",
+    )
+    # Remove the legacy cookie so browsers do not send two values to auth.
+    response.delete_cookie(
+        CSRF_COOKIE,
         path="/api/v1/auth",
+        httponly=True,
+        secure=current_app.config["SESSION_COOKIE_SECURE"],
+        samesite="Lax",
     )
     return response
 
@@ -40,30 +44,6 @@ def _response(payload, status=200):
 def prevent_caching(response):
     response.headers["Cache-Control"] = "no-store"
     return response
-
-
-@auth_bp.before_request
-def protect_csrf():
-    if request.method not in {"POST", "PUT", "PATCH", "DELETE"}:
-        return None
-
-    origin = request.headers.get("Origin")
-    if origin is not None and origin != request.host_url.rstrip("/"):
-        return jsonify({"error": "Origem não permitida."}), 403
-
-    cookie = request.cookies.get(_CSRF_COOKIE, "")
-    token = request.headers.get("X-CSRF-Token", "")
-    if not cookie or not token or not hmac.compare_digest(cookie.encode(), token.encode()):
-        return jsonify({"error": "Token CSRF inválido."}), 403
-    try:
-        data = _csrf_signer().loads(
-            token, max_age=int(current_app.permanent_session_lifetime.total_seconds())
-        )
-    except BadData:
-        return jsonify({"error": "Token CSRF inválido."}), 403
-    if not isinstance(data, dict) or data.get("user_id") != session.get("user_id"):
-        return jsonify({"error": "Token CSRF inválido."}), 403
-    return None
 
 
 @auth_bp.post("/login")
@@ -93,15 +73,14 @@ def login():
         return _response({"error": "Credenciais inválidas."}, 401)
 
     session["user_id"] = user.id
+    session.permanent = True
     return _response({"user": {"id": user.id, "username": user.username}})
 
 
 @auth_bp.get("/me")
 def me():
-    user_id = session.get("user_id")
-    user = db.session.get(User, user_id) if type(user_id) is int else None
-    if user is None or not user.is_active:
-        session.clear()
+    user = resolve_active_user()
+    if user is None:
         # Also bootstraps CSRF for same-origin clients before their first login.
         return _response({"error": "Não autenticado."}, 401)
     return _response({"user": {"id": user.id, "username": user.username}})
