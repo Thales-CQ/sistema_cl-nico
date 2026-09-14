@@ -270,3 +270,35 @@ Implementar a autenticação no frontend integrada ao backend da versão 0.0.5.
 ### Commits correspondentes
 
 - `5db5998` — feat: adiciona autenticacao no frontend
+
+## Versão 0.0.7
+
+### Status
+
+CONCLUÍDA
+
+### Objetivo
+
+Implementar o cadastro e a listagem de pacientes integrados à autenticação do sistema.
+
+### Principais alterações
+
+- Cadastro e listagem de pacientes no backend e frontend.
+- Validação de nome completo, CPF, telefone, data de nascimento e sexo, com erros por campo.
+- Migrations para os dados dos pacientes, com verificações que abortam se houver `NULL` antes de aplicar `NOT NULL`.
+- Sessão de login marcada como permanente para aplicar o limite configurado.
+
+### Testes realizados
+
+- Backend: `255 passed`, com 12 avisos.
+- Frontend: `npm run lint` e `npm run build` concluídos com sucesso.
+
+### Commits correspondentes
+
+- `00ef937` — feat: adiciona cadastro e listagem de pacientes
+
+### Pendências futuras
+
+- Busca de pacientes.
+- Edição de pacientes.
+- Paginação completa da lista.
