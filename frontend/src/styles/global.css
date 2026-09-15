@@ -1,17 +1,10 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
 body {
-  margin: 0;
+  min-width: 320px;
   font-family: var(--font-family);
   font-size: var(--font-size-base);
   line-height: var(--line-height);
   color: var(--color-text);
   background: var(--color-background);
-  overflow-wrap: anywhere;
 }
 
 #root {
@@ -21,29 +14,24 @@ body {
 
 h1,
 h2,
-p {
-  margin: 0;
-}
-
-h1,
-h2 {
+h3 {
+  line-height: var(--line-height-tight);
   font-weight: var(--font-weight-medium);
-  line-height: 1.25;
 }
 
-h1 { font-size: var(--font-size-title); }
-h2 { font-size: var(--font-size-heading); }
+h1 {
+  font-size: var(--font-size-title);
+}
 
-button,
-input {
-  font: inherit;
+h2 {
+  font-size: var(--font-size-heading);
+}
+
+a {
+  color: var(--color-primary);
 }
 
 :focus-visible {
   outline: var(--focus-width) solid var(--color-focus);
   outline-offset: var(--focus-offset);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :root { --transition-control: 0s; }
 }

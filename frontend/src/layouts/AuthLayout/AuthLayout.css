@@ -1,21 +1,17 @@
 .auth-layout {
+  display: grid;
+  place-items: center;
+  width: 100%;
   min-height: 100vh;
   min-height: 100svh;
-  display: flex;
   padding: var(--page-padding);
 }
 
 .auth-layout__panel {
+  display: grid;
+  gap: var(--space-4);
   width: 100%;
   max-width: var(--auth-max-width);
   min-width: 0;
-  margin: auto;
-  padding: var(--panel-padding);
-  border: var(--border-width) solid var(--color-border-subtle);
-  border-radius: var(--radius-panel);
-  background: var(--color-surface);
-}
-
-.auth-layout__title {
-  margin-bottom: var(--space-8);
+  margin: 0 auto;
 }

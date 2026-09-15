@@ -1,20 +1,42 @@
-/* The current light theme; future themes can override these semantic tokens. */
-:root,
-[data-theme="light"] {
+/* Semantic color tokens. Visual themes can be changed here without editing components. */
+:root {
   color-scheme: light;
-  --color-background: #f3f5f8;
+  --color-background: #f3f8fc;
   --color-surface: #ffffff;
-  --color-text: #172334;
-  --color-text-secondary: #526174;
-  --color-primary: #2457a7;
-  --color-primary-hover: #194580;
+  --color-surface-soft: #eef8f7;
+  --color-text: #18343b;
+  --color-text-muted: #5d737b;
+  --color-primary: #087f83;
+  --color-primary-hover: #056469;
   --color-on-primary: #ffffff;
-  --color-border: #7b8797;
-  --color-border-subtle: #d6dde6;
-  --color-error: #a51d2d;
-  --color-error-background: #fff1f2;
-  --color-focus: #2457a7;
+  --color-border: #d7e5e9;
+  --color-border-subtle: #e5edf0;
+  --color-focus: #e28b2f;
+  --color-danger: #c53b4c;
+  --color-error: var(--color-danger);
+  --color-error-background: #fff0f2;
   --color-disabled-background: #e5eaf0;
-  --color-disabled-text: #526174;
-  --color-hover-background: #edf2f8;
+  --color-disabled-text: #5d737b;
+  --color-hover-background: #e1f4f1;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-background: #25272a;
+  --color-surface: #191a1b;
+  --color-surface-soft: #2b2c2d;
+  --color-text: #f1f1f1;
+  --color-text-muted: #b2b3b4;
+  --color-primary: #f1f1f1;
+  --color-primary-hover: #ffffff;
+  --color-on-primary: #101112;
+  --color-border: #38393a;
+  --color-border-subtle: #464b50;
+  --color-focus: #ffffff;
+  --color-danger: #ff737d;
+  --color-error: var(--color-danger);
+  --color-error-background: #3b2227;
+  --color-disabled-background: #3b3e42;
+  --color-disabled-text: #a2a6aa;
+  --color-hover-background: #343536;
 }

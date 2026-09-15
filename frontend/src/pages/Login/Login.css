@@ -1,17 +1,18 @@
 .login__intro {
   display: grid;
   gap: var(--space-2);
-  margin-bottom: var(--space-6);
 }
 
 .login__description,
 .login__status {
-  color: var(--color-text-secondary);
+  color: var(--color-text-muted);
 }
 
 .login__form {
   display: grid;
-  gap: var(--space-6);
+  gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
 }
 
 .login__field {
@@ -28,12 +29,15 @@
   width: 100%;
   min-width: 0;
   min-height: var(--control-height);
-  padding: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-control);
-  background: var(--color-surface);
-  color: var(--color-text);
-  transition: border-color var(--transition-control);
+}
+
+.login__input::placeholder {
+  color: var(--color-text-muted);
 }
 
 .login__input:hover:not(:disabled),
@@ -42,8 +46,8 @@
 }
 
 .login__input:disabled {
-  background: var(--color-disabled-background);
   color: var(--color-disabled-text);
+  background: var(--color-disabled-background);
   cursor: not-allowed;
 }
 
@@ -53,9 +57,4 @@
   background: var(--color-error-background);
   border: var(--border-width) solid var(--color-error);
   border-radius: var(--radius-control);
-}
-
-.login__retry {
-  width: 100%;
-  margin-top: var(--space-4);
 }

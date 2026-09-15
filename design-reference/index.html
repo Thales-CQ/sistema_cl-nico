@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Prévia visual — Sistema Clínico</title>
+  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="layout.css">
+  <link rel="stylesheet" href="desktop.css">
+  <link rel="stylesheet" href="mobile.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="topbar__inner">
+        <div class="brand" aria-label="Sistema Clínico">
+          <span class="brand__mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-8-4.4-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6.6-8 11-8 11Z"/><path d="M12 8v7M8.5 11.5h7"/></svg>
+          </span>
+          <span class="brand__name">Clínica<span class="brand__caption">GESTÃO E CUIDADO</span></span>
+        </div>
+        <div class="topbar__tools">
+          <button class="icon-button" id="theme-toggle" type="button" aria-label="Alternar tema claro e escuro" title="Alternar tema">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+          </button>
+          <div class="account">
+            <span class="avatar" aria-hidden="true">MC</span>
+            <span class="account__details"><span class="account__name">Marina Costa</span><span class="account__role">Recepção</span></span>
+          </div>
+          <button class="logout" type="button">Sair</button>
+        </div>
+      </div>
+    </header>
+    <div class="nav-wrap">
+      <nav class="nav" aria-label="Navegação principal">
+        <button class="mobile-menu-toggle" id="mobile-menu-toggle" type="button" aria-expanded="false" aria-controls="main-menu" aria-label="Abrir menu">☰</button>
+        <ul class="nav__list" id="main-menu">
+          <li class="nav__item"><a class="nav__link" href="#/inicio" data-page="inicio" aria-current="page">Início</a></li>
+          <li class="nav__item">
+            <button class="nav__link" id="patients-toggle" type="button" aria-expanded="false" aria-controls="patients-menu">
+              Pacientes
+              <svg class="chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m5 7.5 5 5 5-5"/></svg>
+            </button>
+            <ul class="submenu" id="patients-menu" aria-label="Pacientes" hidden>
+              <li><a href="#/pacientes/cadastrar" data-page="cadastro">Cadastrar paciente</a></li>
+              <li><a href="#/pacientes/consultar" data-page="consulta">Consultar pacientes</a></li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+    </div>
+
+    <main>
+      <section class="page is-active" id="page-inicio" aria-labelledby="page-title-inicio">
+        <div class="intro">
+          <div class="intro__text">
+            <div class="eyebrow"><span class="eyebrow__dot" aria-hidden="true"></span>SEGUNDA-FEIRA, 14 DE SETEMBRO</div>
+            <h1 id="page-title-inicio" tabindex="-1">Bom dia, Marina</h1>
+            <p class="intro__description">Tudo pronto para cuidar bem de quem chega hoje.</p>
+          </div>
+          <span class="date-label">Visão geral da clínica</span>
+        </div>
+        <div class="section-heading"><h2>Acesso rápido</h2><span class="section-hint">O que você gostaria de fazer?</span></div>
+        <div class="quick-grid">
+          <button class="quick-action" type="button" data-go="consulta">
+            <span class="quick-action__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c.4-3.7 2.4-5.7 6-5.7 2 0 3.4.5 4.4 1.6M16 16l2 2 4-4"/></svg></span>
+            <span class="quick-action__body"><span class="quick-action__title">Consultar pacientes</span><span class="quick-action__description">Encontre e acompanhe os cadastros da clínica.</span></span><span class="quick-action__arrow" aria-hidden="true">→</span>
+          </button>
+          <button class="quick-action" type="button" data-go="cadastro">
+            <span class="quick-action__icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c.4-3.7 2.4-5.7 6-5.7 1.4 0 2.6.3 3.5 1M18 14v7m-3.5-3.5h7"/></svg></span>
+            <span class="quick-action__body"><span class="quick-action__title">Cadastrar paciente</span><span class="quick-action__description">Adicione uma pessoa à base da clínica.</span></span><span class="quick-action__arrow" aria-hidden="true">→</span>
+          </button>
+        </div>
+        <div class="overview">
+          <section class="overview__panel" aria-labelledby="overview-title"><h2 id="overview-title">Clínica em números</h2><div class="metric-row"><div class="metric"><span class="metric__value">248</span><span class="metric__label">Pacientes cadastrados</span></div><div class="metric"><span class="metric__value">12</span><span class="metric__label">Novos este mês</span></div><div class="metric"><span class="metric__value">96%</span><span class="metric__label">Cadastros completos</span></div></div></section>
+          <aside class="overview__panel"><h2>Um bom começo</h2><p class="note"><span class="note__mark" aria-hidden="true">✳</span><span>Os dados dos pacientes ficam organizados em um só lugar, prontos para a equipe consultar.</span></p></aside>
+        </div>
+        <p class="prototype-note">Prévia visual com conteúdo demonstrativo. Indicadores e dados são ilustrativos.</p>
+      </section>
+
+      <section class="page" id="page-consulta" aria-labelledby="page-title-consulta">
+        <div class="intro"><div class="intro__text"><div class="eyebrow"><span class="eyebrow__dot" aria-hidden="true"></span>CADASTROS</div><h1 id="page-title-consulta" tabindex="-1">Pacientes</h1><p class="intro__description">Consulte e encontre os pacientes cadastrados.</p></div></div>
+        <div class="page-tools"><label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg><input type="search" aria-label="Pesquisar pacientes" placeholder="Nome, CPF, telefone ou data de nascimento"></label></div>
+        <div class="table-wrap" role="region" aria-label="Lista de pacientes demonstrativa" tabindex="0"><table><thead><tr><th>Paciente</th><th>Telefone</th><th>Última atualização</th><th>Status</th><th><span class="visually-hidden">Ações</span></th></tr></thead><tbody>
+          <tr><td><div class="person"><span class="person__avatar" aria-hidden="true">AS</span><span><span class="person__name">Ana Souza</span><span class="person__meta">Cadastro demonstrativo</span></span></div></td><td>(11) 98888-1200</td><td>12 set. 2026</td><td><span class="status">Ativo</span></td><td><button class="text-button" type="button">Editar</button></td></tr>
+          <tr><td><div class="person"><span class="person__avatar" aria-hidden="true">RM</span><span><span class="person__name">Rafael Martins</span><span class="person__meta">Cadastro demonstrativo</span></span></div></td><td>(11) 97777-0421</td><td>10 set. 2026</td><td><span class="status">Ativo</span></td><td><button class="text-button" type="button">Editar</button></td></tr>
+          <tr><td><div class="person"><span class="person__avatar" aria-hidden="true">CL</span><span><span class="person__name">Camila Lima</span><span class="person__meta">Cadastro demonstrativo</span></span></div></td><td>(11) 96666-5380</td><td>08 set. 2026</td><td><span class="status">Ativo</span></td><td><button class="text-button" type="button">Editar</button></td></tr>
+        </tbody></table></div>
+        <p class="prototype-note">Prévia visual: pesquisa, paginação e edição ainda não estão conectadas.</p>
+      </section>
+
+      <section class="page" id="page-cadastro" aria-labelledby="page-title-cadastro">
+        <div class="intro"><div class="intro__text"><div class="eyebrow"><span class="eyebrow__dot" aria-hidden="true"></span>CADASTROS</div><h1 id="page-title-cadastro" tabindex="-1">Cadastrar paciente</h1><p class="intro__description">Preencha as informações para criar um novo cadastro.</p></div></div>
+        <form class="form-grid" onsubmit="event.preventDefault(); alert('Prévia: cadastro não conectado.');">
+          <div class="field field--wide"><label for="full-name">Nome completo</label><input id="full-name" autocomplete="name" placeholder="Ex.: Maria da Silva"></div>
+          <div class="field"><label for="birth-date">Data de nascimento</label><input id="birth-date" type="date" autocomplete="bday"></div>
+          <div class="field"><label for="sex">Sexo</label><input id="sex" placeholder="Selecione"></div>
+          <div class="field"><label for="cpf">CPF <span class="section-hint">(opcional)</span></label><input id="cpf" inputmode="numeric" placeholder="000.000.000-00"></div>
+          <div class="field"><label for="phone">Telefone</label><input id="phone" type="tel" autocomplete="tel" placeholder="(00) 00000-0000"></div>
+          <div class="field field--wide"><label for="email">E-mail</label><input id="email" type="email" autocomplete="email" placeholder="nome@exemplo.com"></div>
+          <div class="form-actions"><button class="primary-button" type="submit">Salvar paciente</button><button class="secondary-button" type="button" data-go="consulta">Cancelar</button></div>
+        </form>
+        <p class="prototype-note">Prévia visual: formulário demonstrativo, sem envio à API.</p>
+      </section>
+    </main>
+  </div>
+  <script>
+    const root = document.documentElement;
+    const mobileMenuButton = document.querySelector("#mobile-menu-toggle");
+    const mainMenu = document.querySelector("#main-menu");
+    function setMobileMenuOpen(open) {
+      mobileMenuButton.setAttribute("aria-expanded", String(open));
+      mobileMenuButton.setAttribute("aria-label", open ? "Fechar menu" : "Abrir menu");
+      mobileMenuButton.textContent = open ? "×" : "☰";
+      mainMenu.classList.toggle("is-open", open);
+    }
+    mobileMenuButton.addEventListener("click", () => setMobileMenuOpen(mobileMenuButton.getAttribute("aria-expanded") !== "true"));
+    const themeButton = document.querySelector("#theme-toggle");
+    const sunIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>';
+    const moonIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.5 15.2A8.5 8.5 0 0 1 8.8 3.5 8.5 8.5 0 1 0 20.5 15.2Z"/></svg>';
+    function updateThemeButton() {
+      const isDark = root.dataset.theme === "dark";
+      const nextTheme = isDark ? "claro" : "escuro";
+      themeButton.innerHTML = isDark ? moonIcon : sunIcon;
+      themeButton.setAttribute("aria-label", `Ativar tema ${nextTheme}`);
+      themeButton.title = `Ativar tema ${nextTheme}`;
+    }
+    updateThemeButton();
+    themeButton.addEventListener("click", () => {
+      root.dataset.theme = root.dataset.theme === "dark" ? "light" : "dark";
+      updateThemeButton();
+    });
+
+    const patientToggle = document.querySelector("#patients-toggle");
+    const submenu = document.querySelector("#patients-menu");
+    function setSubmenuOpen(open, restoreFocus = false) {
+      patientToggle.setAttribute("aria-expanded", String(open));
+      submenu.hidden = !open;
+      if (restoreFocus) patientToggle.focus();
+    }
+    patientToggle.addEventListener("click", () => setSubmenuOpen(patientToggle.getAttribute("aria-expanded") !== "true"));
+    document.addEventListener("pointerdown", (event) => {
+      if (!event.target.closest(".nav__item")) setSubmenuOpen(false);
+      if (!event.target.closest(".nav")) setMobileMenuOpen(false);
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && patientToggle.getAttribute("aria-expanded") === "true") setSubmenuOpen(false, true);
+    });
+
+    function showPage(page) {
+      document.querySelectorAll(".page").forEach((section) => section.classList.toggle("is-active", section.id === `page-${page}`));
+      document.querySelectorAll("[data-page]").forEach((link) => {
+        link.removeAttribute("aria-current");
+        link.classList.remove("nav__link--selected");
+      });
+      const activeLink = document.querySelector(`[data-page="${page}"]`);
+      activeLink?.setAttribute("aria-current", "page");
+      activeLink?.classList.add("nav__link--selected");
+      if (page !== "inicio") patientToggle.classList.add("nav__link--selected");
+      else patientToggle.classList.remove("nav__link--selected");
+      if (page !== "inicio") {
+        document.querySelector("#patients-toggle").setAttribute("aria-current", "location");
+      } else {
+        document.querySelector("#patients-toggle").removeAttribute("aria-current");
+      }
+      setSubmenuOpen(false);
+      setMobileMenuOpen(false);
+      document.querySelector(`#page-${page} h1`)?.focus({ preventScroll: true });
+    }
+    document.querySelectorAll("[data-page]").forEach((link) => link.addEventListener("click", (event) => {
+      event.preventDefault();
+      const page = link.dataset.page;
+      history.replaceState(null, "", page === "inicio" ? "#/inicio" : `#/pacientes/${page === "cadastro" ? "cadastrar" : "consultar"}`);
+      showPage(page);
+    }));
+    document.querySelectorAll("[data-go]").forEach((button) => button.addEventListener("click", () => {
+      const page = button.dataset.go;
+      history.replaceState(null, "", `#/pacientes/${page === "cadastro" ? "cadastrar" : "consultar"}`);
+      showPage(page);
+    }));
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest(".text-button");
+      const actionButton = event.target.closest(".form-actions button");
+      const selectedButton = button || actionButton;
+      if (!selectedButton) return;
+      selectedButton.classList.add("is-selected");
+      window.setTimeout(() => selectedButton.classList.remove("is-selected"), 500);
+    });
+    window.addEventListener("hashchange", () => {
+      const hash = location.hash;
+      showPage(hash.endsWith("/cadastrar") ? "cadastro" : hash.endsWith("/consultar") || hash === "#/pacientes" ? "consulta" : "inicio");
+    });
+    if (location.hash.includes("pacientes/cadastrar")) showPage("cadastro");
+    else if (location.hash.includes("pacientes")) showPage("consulta");
+  </script>
+</body>
+</html>

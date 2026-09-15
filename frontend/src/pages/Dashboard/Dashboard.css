@@ -1,0 +1,40 @@
+.dashboard {
+  display: grid;
+  gap: var(--space-6);
+  width: 100%;
+  min-width: 0;
+}
+
+.dashboard__intro,
+.dashboard__quick-access {
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.dashboard__greeting {
+  max-width: 100%;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.dashboard__actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.dashboard__actions > * {
+  min-width: 0;
+}
+
+@media (max-width: 30rem) {
+  .dashboard {
+    gap: var(--space-4);
+  }
+
+  .dashboard__actions {
+    grid-template-columns: 1fr;
+  }
+}

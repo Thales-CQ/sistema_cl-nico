@@ -3,10 +3,10 @@ import "./AuthLayout.css";
 export default function AuthLayout({ children }) {
   return (
     <main className="auth-layout">
-      <div className="auth-layout__panel">
-        <h1 className="auth-layout__title">Sistema Clínico</h1>
+      <section className="auth-layout__panel" aria-labelledby="auth-layout-title">
+        <h1 id="auth-layout-title" className="auth-layout__title">Sistema Clínico</h1>
         {children}
-      </div>
+      </section>
     </main>
   );
 }

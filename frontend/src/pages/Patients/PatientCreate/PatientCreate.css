@@ -1,0 +1,74 @@
+.patient-create {
+  display: grid;
+  gap: var(--space-4);
+  width: 100%;
+  min-width: 0;
+}
+
+.patient-create__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.patient-create__field {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.patient-create__field label {
+  font-weight: var(--font-weight-medium);
+}
+
+.patient-create__field input,
+.patient-create__field select {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+
+.patient-create__field input:hover:not(:disabled),
+.patient-create__field input:focus-visible,
+.patient-create__field select:hover:not(:disabled),
+.patient-create__field select:focus-visible {
+  border-color: var(--color-primary);
+}
+
+.patient-create__field input:disabled,
+.patient-create__field select:disabled {
+  color: var(--color-disabled-text);
+  background: var(--color-disabled-background);
+  cursor: not-allowed;
+}
+
+.patient-create__field-error,
+.patient-create__error {
+  color: var(--color-error);
+}
+
+.patient-create__field-error {
+  overflow-wrap: anywhere;
+}
+
+.patient-create__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+@media (max-width: 40rem) {
+  .patient-create__fields {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-create__actions {
+    align-items: stretch;
+  }
+}

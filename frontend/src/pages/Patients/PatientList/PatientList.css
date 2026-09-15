@@ -1,0 +1,95 @@
+.patient-list__message {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.patient-list__message--error {
+  color: var(--color-error);
+}
+
+.patient-list__table-wrapper {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+
+.patient-list__table {
+  width: 100%;
+  min-width: 42rem;
+  border-collapse: collapse;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.patient-list__table th,
+.patient-list__table td {
+  padding: var(--space-3);
+  border-bottom: var(--border-width) solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.patient-list__table th {
+  font-weight: var(--font-weight-medium);
+  background: var(--color-surface-soft);
+}
+
+.patient-list__table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+@media (max-width: 40rem) {
+  .patient-list__table-wrapper {
+    overflow: visible;
+    border: 0;
+  }
+
+  .patient-list__table {
+    min-width: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .patient-list__table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .patient-list__table,
+  .patient-list__table tbody,
+  .patient-list__table tr,
+  .patient-list__table td {
+    display: block;
+  }
+
+  .patient-list__table tr {
+    padding: var(--space-3);
+    margin-block-end: var(--space-3);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-control);
+    background: var(--color-surface);
+  }
+
+  .patient-list__table td {
+    display: grid;
+    grid-template-columns: minmax(6rem, 35%) minmax(0, 1fr);
+    gap: var(--space-2);
+    padding: var(--space-2) 0;
+    border-bottom: 0;
+  }
+
+  .patient-list__table td::before {
+    content: attr(data-label);
+    font-weight: var(--font-weight-medium);
+  }
+}

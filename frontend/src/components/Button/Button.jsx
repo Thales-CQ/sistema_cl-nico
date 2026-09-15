@@ -1,9 +1,17 @@
+import { forwardRef } from "react";
 import "./Button.css";
 
-export default function Button({ type = "button", variant = "primary", className = "", children, ...props }) {
+const Button = forwardRef(function Button(
+  { type = "button", variant = "primary", className = "", children, ...props },
+  ref,
+) {
+  const classes = ["button", `button--${variant}`, className].filter(Boolean).join(" ");
+
   return (
-    <button type={type} className={`button button--${variant} ${className}`} {...props}>
+    <button ref={ref} type={type} className={classes} {...props}>
       {children}
     </button>
   );
-}
+});
+
+export default Button;

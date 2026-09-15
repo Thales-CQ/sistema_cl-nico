@@ -1,6 +1,7 @@
 .patients {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-6);
+  width: 100%;
   min-width: 0;
 }
 
@@ -8,87 +9,14 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  gap: var(--space-3);
   justify-content: space-between;
-  gap: var(--space-3);
 }
 
-.patients__placeholder {
-  color: var(--color-text-secondary);
-}
-
-.patients__error {
-  color: var(--color-error);
-}
-
-.patients__table-wrapper {
-  overflow-x: auto;
-}
-
-.patients__table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.patients__table th,
-.patients__table td {
-  padding: var(--space-3);
-  border-bottom: var(--border-width) solid var(--color-border-subtle);
-  vertical-align: top;
-}
-
-.patients__form {
-  display: grid;
-  gap: var(--space-6);
-}
-
-.patients__fields {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
-  gap: var(--space-4);
-}
-
-.patients__field {
-  display: grid;
-  gap: var(--space-2);
+.patients__header {
   min-width: 0;
 }
 
-.patients__field label {
-  font-weight: var(--font-weight-medium);
-}
-
-.patients__field input,
-.patients__field select {
-  width: 100%;
+.patients__content {
   min-width: 0;
-  min-height: var(--control-height);
-  padding: var(--space-3);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-  color: var(--color-text);
-  transition: border-color var(--transition-control);
-}
-
-.patients__field input:hover,
-.patients__field input:focus-visible,
-.patients__field select:hover,
-.patients__field select:focus-visible {
-  border-color: var(--color-primary);
-}
-
-.patients__form-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-}
-
-.patients__field-error {
-  color: var(--color-error);
-}
-
-.patients__field input[aria-invalid="true"],
-.patients__field select[aria-invalid="true"] {
-  border-color: var(--color-error);
 }

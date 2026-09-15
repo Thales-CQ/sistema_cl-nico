@@ -1,0 +1,136 @@
+.menu {
+  width: 100%;
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+}
+
+.menu__toggle {
+  display: none;
+}
+
+.menu__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-2) var(--page-padding);
+  list-style: none;
+}
+
+.menu__item {
+  position: relative;
+  min-width: 0;
+}
+
+.menu__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  max-width: 100%;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text);
+  text-decoration: none;
+  background: transparent;
+  border: var(--border-width) solid transparent;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.menu__link:hover,
+.menu__link:focus-visible,
+.menu__link--active,
+.menu__link[aria-current="page"] {
+  background: var(--color-hover-background);
+}
+
+.menu__link--active,
+.menu__link[aria-current="page"] {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.menu__submenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1;
+  display: grid;
+  gap: var(--space-1);
+  min-width: 14rem;
+  max-width: min(22rem, calc(100vw - (2 * var(--page-padding))));
+  margin: 0;
+  padding: var(--space-2);
+  list-style: none;
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+}
+
+.menu__submenu[hidden] {
+  display: none;
+}
+
+.menu__submenu .menu__link {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: start;
+  white-space: normal;
+}
+
+.menu__toggle-icon {
+  display: grid;
+  gap: var(--space-1);
+  width: 1.25rem;
+}
+
+.menu__toggle-icon span {
+  display: block;
+  height: 2px;
+  background: currentColor;
+}
+
+@media (max-width: 760px) {
+  .menu__toggle {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    min-height: 2.75rem;
+    margin: var(--space-2) var(--page-padding);
+    padding: var(--space-2);
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    cursor: pointer;
+  }
+
+  .menu__list {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    padding-block: var(--space-2);
+  }
+
+  .menu--open .menu__list {
+    display: flex;
+  }
+
+  .menu__item,
+  .menu__link {
+    width: 100%;
+  }
+
+  .menu__link {
+    justify-content: flex-start;
+    text-align: start;
+    white-space: normal;
+  }
+
+  .menu__submenu {
+    position: static;
+    min-width: 0;
+    max-width: 100%;
+    margin: var(--space-1) 0 0 var(--space-3);
+  }
+}

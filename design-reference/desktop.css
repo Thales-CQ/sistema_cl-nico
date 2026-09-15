@@ -1,0 +1,13 @@
+/* Modelo reutilizável: regras para telas grandes. */
+@media (min-width: 761px) {
+      .submenu { display: flex; flex-direction: column; gap: 6px; min-width: 228px; padding: 9px; border: 0 !important; border-radius: 14px; background: rgb(255 255 255 / 92%) !important; box-shadow: none; backdrop-filter: blur(10px); }
+      .submenu a,
+      .submenu a:hover { display: block; padding: 11px 13px; border: 1px solid transparent !important; border-radius: 9px; background: transparent !important; color: var(--ink) !important; text-align: left; }
+      .submenu a:hover { background: var(--surface-soft) !important; }
+      .submenu a[aria-current="page"] { border-color: #d8aa35 !important; background: var(--surface-soft) !important; color: var(--ink) !important; }
+      html[data-theme="dark"] .submenu { background: rgb(52 56 61 / 94%) !important; border: 0 !important; }
+      html[data-theme="dark"] .submenu a,
+      html[data-theme="dark"] .submenu a:hover { background: transparent !important; color: #ffffff !important; }
+      html[data-theme="dark"] .submenu a:hover { background: #4b545d !important; }
+      html[data-theme="dark"] .submenu a[aria-current="page"] { background: #4b545d !important; color: #ffffff !important; border-color: #d8aa35 !important; }
+    }
