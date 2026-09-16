@@ -1,4 +1,7 @@
+from datetime import date
+
 from flask import Blueprint, jsonify, request
+from sqlalchemy import extract
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
@@ -37,6 +40,26 @@ def _serialize_patient(patient):
         "created_at": patient.created_at.isoformat(),
         "updated_at": patient.updated_at.isoformat(),
     }
+
+
+def _serialize_birthday_patient(patient):
+    return {
+        "id": patient.id,
+        "full_name": patient.full_name,
+        "birth_date": patient.birth_date.isoformat(),
+    }
+
+
+@patients_bp.get("/birthdays/today")
+def list_today_birthdays():
+    today = date.today()
+    patients = Patient.query.filter(
+        extract("month", Patient.birth_date) == today.month,
+        extract("day", Patient.birth_date) == today.day,
+    ).order_by(Patient.id.asc()).all()
+    return jsonify({
+        "patients": [_serialize_birthday_patient(patient) for patient in patients],
+    })
 
 
 @patients_bp.get("")

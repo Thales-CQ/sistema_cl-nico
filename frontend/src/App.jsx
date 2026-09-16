@@ -47,8 +47,6 @@ export default function App() {
       ) : (
         <Dashboard
           user={user}
-          onPatients={() => navigate("pacientes-consultar")}
-          onNewPatient={() => navigate("pacientes-cadastrar")}
         />
       )}
     </MainLayout>

@@ -92,6 +92,12 @@ export async function getPatients() {
   return data;
 }
 
+export async function getTodayBirthdays() {
+  const { response, data } = await request("/patients/birthdays/today");
+  if (!response.ok) throw apiError(response, data);
+  return data;
+}
+
 export async function createPatient(payload) {
   if (!csrfToken) await readSession();
   const { response, data } = await request("/patients", {

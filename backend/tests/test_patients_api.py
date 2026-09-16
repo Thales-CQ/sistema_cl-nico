@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 from unittest.mock import Mock
 
 import pytest
@@ -14,6 +14,7 @@ from app.models import Patient, User
 PASSWORD = "senha-de-teste-005"
 AUTH_BASE = "/api/v1/auth"
 PATIENTS_URL = "/api/v1/patients"
+BIRTHDAYS_URL = f"{PATIENTS_URL}/birthdays/today"
 
 
 @pytest.fixture
@@ -59,6 +60,104 @@ def test_list_patients_requires_authentication(client):
     response = client.get(PATIENTS_URL)
 
     assert response.status_code == 401
+
+
+def test_list_today_birthdays_requires_authentication(client):
+    response = client.get(BIRTHDAYS_URL)
+
+    assert response.status_code == 401
+
+
+def test_list_today_birthdays_returns_only_today_matches(app, authenticated_client):
+    today = date.today()
+    other_day = today + timedelta(days=1)
+    with app.app_context():
+        birthday = Patient(
+            full_name="Aniversariante Hoje",
+            birth_date=date(2000, today.month, today.day),
+            sex="F",
+        )
+        other_patient = Patient(
+            full_name="Outro Paciente",
+            birth_date=date(2000, other_day.month, other_day.day),
+            sex="M",
+        )
+        db.session.add_all([birthday, other_patient])
+        db.session.commit()
+        expected = {
+            "id": birthday.id,
+            "full_name": birthday.full_name,
+            "birth_date": birthday.birth_date.isoformat(),
+        }
+
+    response = authenticated_client.get(BIRTHDAYS_URL)
+
+    assert response.status_code == 200
+    assert response.json == {"patients": [expected]}
+
+
+def test_list_today_birthdays_returns_multiple_matches(app, authenticated_client):
+    today = date.today()
+    with app.app_context():
+        patients = [
+            Patient(
+                full_name="Primeiro Aniversariante",
+                birth_date=date(1990, today.month, today.day),
+                sex="F",
+            ),
+            Patient(
+                full_name="Segundo Aniversariante",
+                birth_date=date(1985, today.month, today.day),
+                sex="M",
+            ),
+        ]
+        db.session.add_all(patients)
+        db.session.commit()
+
+    response = authenticated_client.get(BIRTHDAYS_URL)
+
+    assert response.status_code == 200
+    assert [patient["full_name"] for patient in response.json["patients"]] == [
+        "Primeiro Aniversariante",
+        "Segundo Aniversariante",
+    ]
+
+
+def test_list_today_birthdays_returns_empty_list(app, authenticated_client):
+    today = date.today()
+    other_day = today + timedelta(days=1)
+    with app.app_context():
+        db.session.add(Patient(
+            full_name="Sem Aniversario Hoje",
+            birth_date=date(2000, other_day.month, other_day.day),
+            sex="F",
+        ))
+        db.session.commit()
+
+    response = authenticated_client.get(BIRTHDAYS_URL)
+
+    assert response.status_code == 200
+    assert response.json == {"patients": []}
+
+
+def test_list_today_birthdays_response_contains_only_required_fields(app, authenticated_client):
+    today = date.today()
+    with app.app_context():
+        patient = Patient(
+            full_name="Formato da Resposta",
+            birth_date=date(2000, today.month, today.day),
+            sex="F",
+            cpf="52998224725",
+            phone="11999999999",
+            email="formato@example.com",
+        )
+        db.session.add(patient)
+        db.session.commit()
+
+    response = authenticated_client.get(BIRTHDAYS_URL)
+
+    assert response.status_code == 200
+    assert set(response.json["patients"][0]) == {"id", "full_name", "birth_date"}
 
 
 def test_list_patients_empty(authenticated_client):

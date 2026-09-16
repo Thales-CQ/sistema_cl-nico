@@ -5,36 +5,172 @@
   min-width: 0;
 }
 
-.dashboard__intro,
-.dashboard__quick-access {
+.dashboard__intro {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-2);
   min-width: 0;
 }
 
-.dashboard__greeting {
-  max-width: 100%;
+.dashboard__intro h1 {
+  margin: 0;
+  letter-spacing: -0.035em;
+}
+
+.dashboard__greeting,
+.dashboard__description,
+.dashboard__message {
+  max-width: 42rem;
   color: var(--color-text-muted);
   overflow-wrap: anywhere;
 }
 
-.dashboard__actions {
+.dashboard__overview {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  grid-template-columns: minmax(14rem, 0.8fr) minmax(0, 1.8fr);
+  gap: var(--space-6);
+  align-items: stretch;
+  min-width: 0;
+}
+
+.dashboard__summary,
+.dashboard__birthdays {
+  display: grid;
+  align-content: center;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-6);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.dashboard__birthdays {
+  text-align: center;
+}
+
+.dashboard__card {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  width: 100%;
+  text-align: center;
+}
+
+.dashboard__card h2,
+.dashboard__birthdays h2 {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.dashboard__section-heading {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.dashboard__section-heading p {
+  margin: 0;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.dashboard__card-value {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard__message {
+  margin: 0;
+}
+
+.dashboard__message--error {
+  padding: var(--space-3);
+  color: var(--color-error);
+  background: var(--color-error-background);
+  border: var(--border-width) solid var(--color-error);
+  border-radius: var(--radius-control);
+}
+
+.dashboard__empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.dashboard__birthday-list {
+  display: grid;
+  gap: var(--space-2);
+  width: min(100%, 26rem);
+  justify-items: center;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard__birthday {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   gap: var(--space-3);
   min-width: 0;
+  padding: var(--space-2) 0;
+  text-align: center;
 }
 
-.dashboard__actions > * {
+.dashboard__avatar {
+  display: grid;
+  place-items: center;
+  flex: 0 0 2.75rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--color-primary);
+  font-weight: var(--font-weight-medium);
+  background: var(--color-surface-soft);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: 50%;
+}
+
+.dashboard__birthday-details {
   min-width: 0;
+  text-align: center;
 }
 
-@media (max-width: 30rem) {
+.dashboard__birthday-details h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--font-size-button);
+  font-weight: var(--font-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.dashboard__birthday-details p {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-meta);
+}
+
+@media (max-width: 40rem) {
   .dashboard {
     gap: var(--space-4);
   }
 
-  .dashboard__actions {
+  .dashboard__overview {
     grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  .dashboard__summary,
+  .dashboard__birthdays {
+    padding: var(--space-4);
   }
 }
