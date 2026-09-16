@@ -1,0 +1,94 @@
+.patient-edit {
+  display: grid;
+  gap: var(--space-3);
+  width: 100%;
+  min-width: 0;
+}
+
+.patient-edit__message {
+  display: grid;
+  gap: var(--space-3);
+  width: min(100%, 820px);
+  margin: 0 auto;
+  padding: var(--space-4);
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.patient-edit__message p {
+  margin: 0;
+}
+
+.patient-edit__message--error {
+  color: var(--color-error);
+  background: var(--color-error-background);
+  border-color: var(--color-error);
+}
+
+.patient-edit__status-error {
+  width: min(100%, 820px);
+  margin: 0 auto;
+  padding: var(--space-3);
+  color: var(--color-error);
+  background: var(--color-error-background);
+  border: var(--border-width) solid var(--color-error);
+  border-radius: var(--radius-control);
+}
+
+.patient-edit__status-button--inactive {
+  color: var(--color-action-status-inactive);
+  background: var(--color-surface);
+  border-color: var(--color-action-status-inactive);
+}
+
+.patient-edit__status-button--active {
+  color: var(--color-action-status-active);
+  background: var(--color-surface);
+  border-color: var(--color-action-status-active);
+}
+
+.patient-edit__status-button--inactive:hover:not(:disabled) {
+  color: var(--color-on-action-status-inactive);
+  background: var(--color-action-status-inactive);
+  border-color: var(--color-action-status-inactive);
+}
+
+.patient-edit__status-button--active:hover:not(:disabled) {
+  color: var(--color-on-action-status-active);
+  background: var(--color-action-status-active);
+  border-color: var(--color-action-status-active);
+}
+
+@media (max-width: 40rem) {
+  .patient-edit__message,
+  .patient-edit__status-error {
+    width: 100%;
+  }
+
+  .patient-edit__status-button--inactive:not(:disabled) {
+    color: var(--color-action-status-inactive);
+    background: var(--color-surface);
+    border-color: var(--color-action-status-inactive);
+  }
+
+  .patient-edit__status-button--active:not(:disabled) {
+    color: var(--color-action-status-active);
+    background: var(--color-surface);
+    border-color: var(--color-action-status-active);
+  }
+
+  .patient-edit__status-button--inactive:hover:not(:disabled) {
+    color: var(--color-on-action-status-inactive);
+    background: var(--color-action-status-inactive);
+    border-color: var(--color-action-status-inactive);
+  }
+
+  .patient-edit__status-button--active:hover:not(:disabled) {
+    color: var(--color-on-action-status-active);
+    background: var(--color-action-status-active);
+    border-color: var(--color-action-status-active);
+  }
+}
