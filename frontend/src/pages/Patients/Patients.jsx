@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
 import { getPatients } from "../../services/api";
 import PatientCreate from "./PatientCreate/PatientCreate";
+import PatientEdit from "./PatientEdit/PatientEdit";
 import PatientList from "./PatientList/PatientList";
 import "./Patients.css";
 
-export default function Patients({ view = "consultar", onViewChange }) {
+export default function Patients({
+  view = "consultar",
+  onViewChange,
+  onEditPatient,
+}) {
   const creating = view === "cadastrar";
+  const [editingPatientId, setEditingPatientId] = useState(null);
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -27,11 +33,45 @@ export default function Patients({ view = "consultar", onViewChange }) {
     onViewChange("consultar");
   }
 
+  function handleEditPatient(patient) {
+    onEditPatient?.(patient);
+    setEditingPatientId(patient.id);
+  }
+
+  function handleUpdated(updatedPatient) {
+    setPatients((current) => current.map((patient) => (
+      patient.id === updatedPatient.id ? updatedPatient : patient
+    )));
+    setEditingPatientId(null);
+  }
+
+  function handleStatusUpdated(updatedPatient) {
+    setPatients((current) => current.map((patient) => (
+      patient.id === updatedPatient.id ? updatedPatient : patient
+    )));
+  }
+
+  async function handleEditCanceled() {
+    try {
+      const data = await getPatients();
+      setPatients(data.patients);
+      setError("");
+    } catch (failure) {
+      setError(failure.message);
+    } finally {
+      setEditingPatientId(null);
+    }
+  }
+
+  const editing = !creating && editingPatientId !== null;
+
   return (
-    <section className={`patients${creating ? " patients--creating" : ""}`} aria-labelledby="patients-title">
+    <section className={`patients${creating ? " patients--creating" : ""}${editing ? " patients--editing" : ""}`} aria-labelledby="patients-title">
       <header className="patients__header">
         {creating ? (
           <h2 id="patients-title">Novo paciente</h2>
+        ) : editing ? (
+          <h2 id="patients-title">Editar paciente</h2>
         ) : (
           <>
             <span id="patients-title" className="patients__accessible-title">Consulta de pacientes</span>
@@ -54,12 +94,20 @@ export default function Patients({ view = "consultar", onViewChange }) {
       <div className="patients__content">
         {creating ? (
           <PatientCreate onCreated={handleCreated} onCancel={() => onViewChange("consultar")} />
+        ) : editing ? (
+          <PatientEdit
+            patientId={editingPatientId}
+            onUpdated={handleUpdated}
+            onStatusUpdated={handleStatusUpdated}
+            onCancel={handleEditCanceled}
+          />
         ) : (
           <PatientList
             patients={patients}
             loading={loading}
             error={error}
             search={search}
+            onEditPatient={handleEditPatient}
           />
         )}
       </div>

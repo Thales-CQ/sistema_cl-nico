@@ -52,6 +52,14 @@
   text-align: center;
 }
 
+.patients--editing .patients__header {
+  width: 100%;
+  max-width: 820px;
+  margin-inline: auto;
+  justify-content: center;
+  text-align: center;
+}
+
 @media (max-width: 40rem) {
   .patients__header {
     align-items: stretch;

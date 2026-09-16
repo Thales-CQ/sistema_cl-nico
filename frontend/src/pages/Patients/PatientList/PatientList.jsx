@@ -1,7 +1,14 @@
 import { filterPatients } from "./patientSearch";
+import Button from "../../../components/Button/Button";
 import "./PatientList.css";
 
-export default function PatientList({ patients, loading, error, search = "" }) {
+export default function PatientList({
+  patients,
+  loading,
+  error,
+  search = "",
+  onEditPatient = () => {},
+}) {
   const filteredPatients = filterPatients(patients, search);
 
   return (
@@ -22,7 +29,10 @@ export default function PatientList({ patients, loading, error, search = "" }) {
           {filteredPatients.length === 0 ? (
             <p className="patient-list__message" role="status">Nenhum paciente corresponde à pesquisa.</p>
           ) : (
-            <PatientTable patients={filteredPatients} />
+            <PatientTable
+              patients={filteredPatients}
+              onEditPatient={onEditPatient}
+            />
           )}
         </>
       )}
@@ -30,7 +40,10 @@ export default function PatientList({ patients, loading, error, search = "" }) {
   );
 }
 
-function PatientTable({ patients }) {
+function PatientTable({
+  patients,
+  onEditPatient,
+}) {
   return (
     <div className="patient-list__table-wrapper" role="region" aria-labelledby="patients-title" tabIndex={0}>
       <table className="patient-list__table" aria-labelledby="patients-title">
@@ -42,6 +55,7 @@ function PatientTable({ patients }) {
             <th scope="col">Telefone</th>
             <th scope="col">Email</th>
             <th scope="col">Status</th>
+            <th scope="col">Ações</th>
           </tr>
         </thead>
         <tbody>
@@ -56,10 +70,33 @@ function PatientTable({ patients }) {
                   {patient.is_active ? "Ativo" : "Inativo"}
                 </span>
               </td>
+              <td data-label="Ações">
+                <PatientActions
+                  patient={patient}
+                  onEditPatient={onEditPatient}
+                />
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function PatientActions({
+  patient,
+  onEditPatient,
+}) {
+  return (
+    <div className="patient-list__actions">
+      <Button
+        className="patient-list__edit"
+        variant="secondary"
+        onClick={() => onEditPatient(patient)}
+      >
+        Editar
+      </Button>
     </div>
   );
 }

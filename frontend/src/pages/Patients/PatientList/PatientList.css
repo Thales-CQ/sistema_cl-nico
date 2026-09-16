@@ -178,6 +178,32 @@
   background: var(--color-danger);
 }
 
+.patient-list__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-width: min(100%, 18rem);
+}
+
+.patient-list__actions .button {
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: var(--font-size-meta);
+}
+
+.patient-list__edit.button:not(:disabled) {
+  color: var(--color-action-edit);
+  background: var(--color-surface);
+  border-color: var(--color-action-edit);
+}
+
+.patient-list__edit.button:hover:not(:disabled),
+.patient-list__edit.button:active:not(:disabled) {
+  color: var(--color-on-action-edit);
+  background: var(--color-action-edit);
+  border-color: var(--color-action-edit);
+}
+
 .patient-list__table tbody tr:last-child td {
   border-bottom: 0;
 }
@@ -259,5 +285,16 @@
   .patient-list__table th,
   .patient-list__table td {
     padding: 10px clamp(8px, 1.5vw, 12px);
+  }
+}
+
+@media (max-width: 40rem) {
+  .patient-list__actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .patient-list__actions .button {
+    width: 100%;
   }
 }
