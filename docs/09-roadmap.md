@@ -47,9 +47,13 @@
 
 ## Versão 0.0.8
 
-- Consulta de pacientes
-- Pesquisa
-- Paginação
+- [x] Consulta e pesquisa de pacientes
+- [x] Edição de paciente
+- [x] Carregamento dos dados atuais do paciente
+- [x] Atualização dos dados do paciente
+- [x] Inativação e reativação pela tela de edição
+- [x] APIs de detalhes, atualização e status
+- [x] Testes correspondentes
 
 ## Versão 0.0.9
 
