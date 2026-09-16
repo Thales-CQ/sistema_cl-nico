@@ -5,13 +5,51 @@
   min-height: 100vh;
   min-height: 100svh;
   padding: var(--page-padding);
+  background: var(--color-background);
 }
 
 .auth-layout__panel {
+  position: relative;
   display: grid;
   gap: var(--space-4);
   width: 100%;
   max-width: var(--auth-max-width);
   min-width: 0;
   margin: 0 auto;
+  padding: 30px;
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+@media (min-width: 761px) {
+  .auth-layout__panel {
+    max-width: 28rem;
+    padding: 36px;
+  }
+}
+
+@media (min-width: 40rem) and (max-width: 64rem) {
+  .auth-layout__panel {
+    max-width: min(32rem, calc(100vw - (2 * var(--page-padding))));
+    padding: clamp(30px, 4vw, 36px);
+  }
+}
+
+.auth-layout__title {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(1.45rem, 3vw, 1.8rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  text-align: center;
+}
+
+@media (max-width: 30rem) {
+  .auth-layout__panel {
+    padding: 22px 18px;
+    border-radius: var(--radius-card);
+  }
 }
