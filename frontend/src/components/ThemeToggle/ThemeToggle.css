@@ -1,33 +1,61 @@
 .theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 7rem;
-  min-height: var(--control-height);
-  max-width: 100%;
-  padding: var(--space-2) var(--space-3);
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  padding: 0;
   color: var(--color-text);
-  line-height: var(--line-height);
-  text-align: center;
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
+  border-radius: 50%;
   cursor: pointer;
-  overflow-wrap: anywhere;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.theme-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.theme-toggle__icon {
+  display: grid;
+  place-items: center;
+  grid-area: 1 / 1;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.theme-toggle__icon--hover {
+  opacity: 0;
+  transform: rotate(-18deg) scale(0.7);
+}
+
+.theme-toggle:hover .theme-toggle__icon--current {
+  opacity: 0;
+  transform: rotate(18deg) scale(0.7);
+}
+
+.theme-toggle:hover .theme-toggle__icon--hover {
+  opacity: 1;
+  transform: rotate(0) scale(1);
 }
 
 .theme-toggle:hover {
   background: var(--color-hover-background);
   border-color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.theme-toggle:active {
+  transform: translateY(0);
 }
 
 .theme-toggle:focus-visible {
   outline: var(--focus-width) solid var(--color-focus);
   outline-offset: var(--focus-offset);
-}
-
-@media (max-width: 30rem) {
-  .theme-toggle {
-    min-width: 0;
-    white-space: normal;
-  }
 }

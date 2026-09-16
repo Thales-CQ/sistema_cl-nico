@@ -1,14 +1,16 @@
 .header {
-  padding: var(--page-padding);
+  padding: 12px var(--page-padding);
+  background: var(--color-surface);
   border-bottom: var(--border-width) solid var(--color-border-subtle);
 }
 
 .header__inner {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+  min-height: 56px;
   width: 100%;
   max-width: var(--content-max-width);
   margin: 0 auto;
@@ -24,12 +26,18 @@
 
 .header__brand {
   min-width: 0;
+  gap: 10px;
 }
 
 .header__account {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
+  gap: 8px;
+  padding: 5px 6px 5px 12px;
   min-width: 0;
+  background: var(--color-surface-soft);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: 14px;
 }
 
 .header__brand-mark {
@@ -37,6 +45,7 @@
   flex: 0 0 auto;
   width: 1.5rem;
   height: 1.5rem;
+  color: var(--color-primary);
 }
 
 .header__brand-mark svg {
@@ -56,22 +65,83 @@
   overflow-wrap: anywhere;
 }
 
+.header__brand-name {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.header__identity {
+  min-width: 12rem;
+  padding-right: 8px;
+  border-right: var(--border-width) solid var(--color-border);
+}
+
+.header__identity-details {
+  gap: 0;
+  justify-items: center;
+  text-align: center;
+}
+
 .header__identity-label,
 .header__status {
   color: var(--color-text-muted);
-  font-size: var(--font-size-small);
+  font-size: var(--font-size-meta);
+}
+
+.header__identity-details strong {
+  font-size: var(--font-size-label);
 }
 
 .header__status {
-  flex-basis: 100%;
+  grid-column: 1 / -1;
+}
+
+.header__logout.button {
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 9px;
+  font-size: 0.875rem;
+}
+
+.header__logout.button:hover:not(:disabled),
+.header__logout.button:active:not(:disabled) {
+  color: var(--color-on-primary);
+  background: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 @media (max-width: 600px) {
   .header__inner {
+    grid-template-columns: minmax(0, 1fr);
     align-items: flex-start;
   }
 
   .header__account {
-    margin-inline-start: auto;
+    grid-column: 1;
+    width: 100%;
+    justify-content: flex-end;
+    margin-inline-start: 0;
+  }
+
+  .header {
+    padding-block: 10px;
+  }
+
+  .header__inner {
+    min-height: 48px;
+  }
+
+  .header__identity-details {
+    max-width: 14rem;
+  }
+
+  .header__identity {
+    min-width: 8rem;
+  }
+
+  .header__brand-name {
+    font-size: 1.05rem;
   }
 }

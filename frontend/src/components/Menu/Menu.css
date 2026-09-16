@@ -1,6 +1,7 @@
 .menu {
   width: 100%;
-  border-bottom: var(--border-width) solid var(--color-border-subtle);
+  background: var(--color-nav-background);
+  border-block: var(--border-width) solid var(--color-border);
 }
 
 .menu__toggle {
@@ -10,11 +11,13 @@
 .menu__list {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  align-items: center;
+  gap: 4px;
   width: 100%;
   max-width: var(--content-max-width);
   margin: 0 auto;
-  padding: var(--space-2) var(--page-padding);
+  padding: 5px var(--page-padding);
+  justify-content: center;
   list-style: none;
 }
 
@@ -28,28 +31,34 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  min-height: var(--control-height);
+  min-height: 38px;
   max-width: 100%;
-  padding: var(--space-2) var(--space-3);
+  padding: 6px 12px;
   color: var(--color-text);
+  font-size: var(--font-size-button);
+  font-weight: 600;
   text-decoration: none;
   background: transparent;
   border: var(--border-width) solid transparent;
+  border-radius: var(--radius-control);
   cursor: pointer;
   overflow-wrap: anywhere;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
 
 .menu__link:hover,
 .menu__link:focus-visible,
 .menu__link--active,
 .menu__link[aria-current="page"] {
-  background: var(--color-hover-background);
+  background: var(--color-nav-hover);
 }
 
 .menu__link--active,
 .menu__link[aria-current="page"] {
-  color: var(--color-primary);
-  border-color: var(--color-primary);
+  color: var(--color-nav-active-text);
+  background: var(--color-nav-active);
+  border-color: var(--color-nav-accent);
+  font-weight: 700;
 }
 
 .menu__submenu {
@@ -64,8 +73,10 @@
   margin: 0;
   padding: var(--space-2);
   list-style: none;
-  background: var(--color-surface);
+  background: var(--color-submenu-background);
   border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-control);
+  box-shadow: 0 14px 30px rgb(24 71 78 / 14%);
 }
 
 .menu__submenu[hidden] {
@@ -79,10 +90,16 @@
   white-space: normal;
 }
 
+.menu__submenu .menu__link:hover,
+.menu__submenu .menu__link:focus-visible {
+  background: var(--color-submenu-hover);
+}
+
 .menu__toggle-icon {
   display: grid;
   gap: var(--space-1);
   width: 1.25rem;
+  transition: transform 180ms ease;
 }
 
 .menu__toggle-icon span {
@@ -92,6 +109,10 @@
 }
 
 @media (max-width: 760px) {
+  .menu {
+    border-block: 0;
+  }
+
   .menu__toggle {
     display: grid;
     place-items: center;
@@ -100,16 +121,43 @@
     margin: var(--space-2) var(--page-padding);
     padding: var(--space-2);
     color: var(--color-text);
-    background: var(--color-surface);
+    background: var(--color-nav-surface);
     border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-control);
     cursor: pointer;
+    transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  }
+
+  .menu__toggle:hover {
+    background: var(--color-nav-hover);
+    border-color: var(--color-nav-accent);
+    transform: translateY(-1px);
+  }
+
+  .menu__toggle:active {
+    transform: scale(0.94);
+  }
+
+  .menu__toggle:focus-visible {
+    border-color: var(--color-focus);
+  }
+
+  .menu__toggle[aria-expanded="true"] {
+    background: var(--color-nav-hover);
+    box-shadow: 0 4px 12px rgb(24 71 78 / 16%);
+  }
+
+  .menu__toggle[aria-expanded="true"] .menu__toggle-icon {
+    transform: rotate(180deg);
   }
 
   .menu__list {
     display: none;
     flex-direction: column;
     align-items: stretch;
+    justify-content: flex-start;
     padding-block: var(--space-2);
+    background: var(--color-nav-background);
   }
 
   .menu--open .menu__list {

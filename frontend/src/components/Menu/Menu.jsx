@@ -106,7 +106,7 @@ export default function Menu({ items = [], currentDestination }) {
                   aria-controls={`${submenuPrefix}-${item.id}`}
                   onClick={() => setOpenId((current) => current === item.id ? null : item.id)}
                 >
-                  {item.label} <span aria-hidden="true">▾</span>
+                  {item.label}
                 </button>
                 <ul
                   id={`${submenuPrefix}-${item.id}`}
