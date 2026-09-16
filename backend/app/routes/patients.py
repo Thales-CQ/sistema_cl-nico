@@ -62,6 +62,87 @@ def list_today_birthdays():
     })
 
 
+@patients_bp.get("/<int:patient_id>")
+def get_patient(patient_id):
+    patient = db.session.get(Patient, patient_id)
+    if patient is None:
+        return jsonify({"error": "Paciente não encontrado."}), 404
+    return jsonify({"patient": _serialize_patient(patient)})
+
+
+@patients_bp.patch("/<int:patient_id>/status")
+def update_patient_status(patient_id):
+    patient = db.session.get(Patient, patient_id)
+    if patient is None:
+        return jsonify({"error": "Paciente não encontrado."}), 404
+
+    if not request.is_json:
+        return jsonify({"error": "Envie um objeto JSON válido."}), 400
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Envie um objeto JSON válido."}), 400
+    if set(data) != {"is_active"}:
+        return jsonify({
+            "error": "Envie somente o campo is_active.",
+            "fields": sorted(set(data) - {"is_active"}),
+        }), 400
+    if not isinstance(data["is_active"], bool):
+        return jsonify({"error": "is_active deve ser booleano."}), 400
+
+    patient.is_active = data["is_active"]
+    db.session.commit()
+    return jsonify({"patient": _serialize_patient(patient)})
+
+
+@patients_bp.patch("/<int:patient_id>")
+def update_patient(patient_id):
+    patient = db.session.get(Patient, patient_id)
+    if patient is None:
+        return jsonify({"error": "Paciente não encontrado."}), 404
+
+    if not request.is_json:
+        return jsonify({"error": "Envie um objeto JSON válido."}), 400
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Envie um objeto JSON válido."}), 400
+
+    unknown_fields = sorted(set(data) - PATIENT_VALIDATORS.keys())
+    if unknown_fields:
+        return jsonify({
+            "error": "Campos não permitidos.",
+            "fields": unknown_fields,
+        }), 400
+
+    normalized, errors = validate_patient(data, partial=True)
+    if errors:
+        return jsonify({"error": "Dados inválidos.", "errors": errors}), 400
+    if not normalized:
+        return jsonify({"error": "Informe ao menos um campo para atualizar."}), 400
+
+    cpf = normalized.get("cpf")
+    if cpf is not None and Patient.query.filter(
+        Patient.cpf == cpf, Patient.id != patient.id
+    ).first() is not None:
+        return jsonify({"error": "CPF já cadastrado."}), 409
+
+    for field, value in normalized.items():
+        setattr(patient, field, value)
+
+    try:
+        db.session.commit()
+    except IntegrityError:
+        db.session.rollback()
+        if cpf is not None and Patient.query.filter(
+            Patient.cpf == cpf, Patient.id != patient.id
+        ).first() is not None:
+            return jsonify({"error": "CPF já cadastrado."}), 409
+        raise
+
+    return jsonify({"patient": _serialize_patient(patient)})
+
+
 @patients_bp.get("")
 def list_patients():
     try:
