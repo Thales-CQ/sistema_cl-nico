@@ -7,12 +7,87 @@
   color: var(--color-error);
 }
 
+.patient-list__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.patient-list__search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 32rem);
+  min-height: 44px;
+  padding: 6px 12px;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: 10px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.patient-list__search:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 14%, transparent);
+}
+
+.patient-list__search-icon {
+  position: absolute;
+  left: 13px;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+  pointer-events: none;
+}
+
+.patient-list__search-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.patient-list__search input {
+  width: 100%;
+  min-width: 0;
+  padding-inline: 28px;
+  color: var(--color-text);
+  background: transparent;
+  border: 0;
+  outline: 0;
+}
+
+.patients__search input {
+  text-align: center;
+}
+
+.patient-list__search input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.patient-list__count {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-meta);
+}
+
 .patient-list__table-wrapper {
   width: 100%;
   min-width: 0;
   overflow-x: auto;
   border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
 .patient-list__table {
@@ -23,9 +98,18 @@
   background: var(--color-surface);
 }
 
+.patient-list__table caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .patient-list__table th,
 .patient-list__table td {
-  padding: var(--space-3);
+  padding: 12px 16px;
   border-bottom: var(--border-width) solid var(--color-border);
   text-align: left;
   vertical-align: top;
@@ -35,6 +119,63 @@
 .patient-list__table th {
   font-weight: var(--font-weight-medium);
   background: var(--color-surface-soft);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-meta);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.patient-list__table tbody tr {
+  transition: background-color 160ms ease;
+}
+
+.patient-list__table td {
+  font-size: var(--font-size-button);
+}
+
+.patient-list__name {
+  font-weight: 650;
+}
+
+.patient-list__table tbody tr:hover {
+  background: var(--color-patient-hover);
+}
+
+.patient-list__status {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: var(--font-size-meta);
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+.patient-list__status::before {
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 50%;
+  content: "";
+}
+
+.patient-list__status--active {
+  color: var(--color-success);
+  background: var(--color-success-background);
+}
+
+.patient-list__status--active::before {
+  background: var(--color-success);
+}
+
+.patient-list__status--inactive {
+  color: var(--color-danger);
+  background: var(--color-error-background);
+}
+
+.patient-list__status--inactive::before {
+  background: var(--color-danger);
 }
 
 .patient-list__table tbody tr:last-child td {
@@ -42,6 +183,16 @@
 }
 
 @media (max-width: 40rem) {
+  .patient-list__toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .patient-list__search {
+    width: 100%;
+  }
+
   .patient-list__table-wrapper {
     overflow: visible;
     border: 0;
@@ -73,11 +224,12 @@
   }
 
   .patient-list__table tr {
-    padding: var(--space-3);
+    padding: 14px;
     margin-block-end: var(--space-3);
     border: var(--border-width) solid var(--color-border);
-    border-radius: var(--radius-control);
+    border-radius: var(--radius-card);
     background: var(--color-surface);
+    box-shadow: var(--shadow-card);
   }
 
   .patient-list__table td {
@@ -91,5 +243,21 @@
   .patient-list__table td::before {
     content: attr(data-label);
     font-weight: var(--font-weight-medium);
+  }
+}
+
+@media (min-width: 40rem) and (max-width: 64rem) {
+  .patient-list__table-wrapper {
+    overflow-x: auto;
+  }
+
+  .patient-list__table {
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  .patient-list__table th,
+  .patient-list__table td {
+    padding: 10px clamp(8px, 1.5vw, 12px);
   }
 }

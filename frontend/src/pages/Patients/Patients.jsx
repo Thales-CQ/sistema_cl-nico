@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-import Button from "../../components/Button/Button";
+import { useEffect, useState } from "react";
 import { getPatients } from "../../services/api";
 import PatientCreate from "./PatientCreate/PatientCreate";
 import PatientList from "./PatientList/PatientList";
@@ -10,13 +9,7 @@ export default function Patients({ view = "consultar", onViewChange }) {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const newPatientButton = useRef(null);
-  const wasCreating = useRef(false);
-
-  useEffect(() => {
-    if (!creating && wasCreating.current) newPatientButton.current?.focus();
-    wasCreating.current = creating;
-  }, [creating]);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -35,20 +28,39 @@ export default function Patients({ view = "consultar", onViewChange }) {
   }
 
   return (
-    <section className="patients" aria-labelledby="patients-title">
+    <section className={`patients${creating ? " patients--creating" : ""}`} aria-labelledby="patients-title">
       <header className="patients__header">
-        <h2 id="patients-title">{creating ? "Novo paciente" : "Pacientes"}</h2>
-        {!creating && (
-          <Button ref={newPatientButton} onClick={() => onViewChange("cadastrar")}>
-            Novo paciente
-          </Button>
+        {creating ? (
+          <h2 id="patients-title">Novo paciente</h2>
+        ) : (
+          <>
+            <span id="patients-title" className="patients__accessible-title">Consulta de pacientes</span>
+            <label className="patient-list__search patients__search">
+              <svg className="patient-list__search-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <circle cx="10.8" cy="10.8" r="6.8" />
+                <path d="m16 16 5 5" />
+              </svg>
+              <span className="patient-list__search-label">Pesquisar paciente</span>
+              <input
+                type="search"
+                value={search}
+                placeholder="Pesquisar paciente"
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </label>
+          </>
         )}
       </header>
       <div className="patients__content">
         {creating ? (
           <PatientCreate onCreated={handleCreated} onCancel={() => onViewChange("consultar")} />
         ) : (
-          <PatientList patients={patients} loading={loading} error={error} />
+          <PatientList
+            patients={patients}
+            loading={loading}
+            error={error}
+            search={search}
+          />
         )}
       </div>
     </section>
