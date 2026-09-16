@@ -98,6 +98,40 @@ export async function getTodayBirthdays() {
   return data;
 }
 
+export async function getPatient(patientId) {
+  const { response, data } = await request(`/patients/${patientId}`);
+  if (!response.ok) throw apiError(response, data);
+  return data;
+}
+
+export async function updatePatient(patientId, payload) {
+  if (!csrfToken) await readSession();
+  const { response, data } = await request(`/patients/${patientId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRF-Token": csrfToken,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw apiError(response, data);
+  return data;
+}
+
+export async function updatePatientStatus(patientId, isActive) {
+  if (!csrfToken) await readSession();
+  const { response, data } = await request(`/patients/${patientId}/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      "X-CSRF-Token": csrfToken,
+    },
+    body: JSON.stringify({ is_active: isActive }),
+  });
+  if (!response.ok) throw apiError(response, data);
+  return data;
+}
+
 export async function createPatient(payload) {
   if (!csrfToken) await readSession();
   const { response, data } = await request("/patients", {
