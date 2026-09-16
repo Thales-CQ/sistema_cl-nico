@@ -1,24 +1,32 @@
 .patient-create {
   display: grid;
-  gap: var(--space-4);
+  gap: 22px;
   width: 100%;
+  max-width: 820px;
+  margin-inline: auto;
   min-width: 0;
+  padding: 20px;
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
 .patient-create__fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
+  gap: 14px 16px;
   min-width: 0;
 }
 
 .patient-create__field {
   display: grid;
-  gap: var(--space-2);
+  gap: 6px;
   min-width: 0;
 }
 
 .patient-create__field label {
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
 }
 
@@ -26,12 +34,17 @@
 .patient-create__field select {
   width: 100%;
   min-width: 0;
-  min-height: var(--control-height);
-  padding: var(--space-2) var(--space-3);
+  min-height: 42px;
+  padding: 8px 12px;
   color: var(--color-text);
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-control);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.patient-create__field input::placeholder {
+  color: var(--color-text-muted);
 }
 
 .patient-create__field input:hover:not(:disabled),
@@ -39,6 +52,12 @@
 .patient-create__field select:hover:not(:disabled),
 .patient-create__field select:focus-visible {
   border-color: var(--color-primary);
+}
+
+.patient-create__field input:focus-visible,
+.patient-create__field select:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-primary) 15%, transparent);
 }
 
 .patient-create__field input:disabled,
@@ -51,21 +70,63 @@
 .patient-create__field-error,
 .patient-create__error {
   color: var(--color-error);
+  margin: 0;
+  font-size: var(--font-size-meta);
 }
 
 .patient-create__field-error {
   overflow-wrap: anywhere;
 }
 
+.patient-create__error {
+  padding: 10px 12px;
+  background: var(--color-error-background);
+  border: var(--border-width) solid var(--color-error);
+  border-radius: var(--radius-control);
+}
+
 .patient-create__actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
+  padding-top: 12px;
+  border-top: var(--border-width) solid var(--color-border-subtle);
+}
+
+.patient-create__save.button:not(:disabled) {
+  color: var(--color-action-primary);
+  background: var(--color-surface);
+  border-color: var(--color-action-primary);
+}
+
+.patient-create__save.button:hover:not(:disabled),
+.patient-create__save.button:active:not(:disabled) {
+  color: var(--color-on-action-primary);
+  background: var(--color-action-primary);
+  border-color: var(--color-action-primary);
+}
+
+.patient-create__cancel.button:not(:disabled) {
+  color: var(--color-danger);
+  background: var(--color-surface);
+  border-color: var(--color-danger);
+}
+
+.patient-create__cancel.button:hover:not(:disabled),
+.patient-create__cancel.button:active:not(:disabled) {
+  color: var(--color-on-primary);
+  background: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 @media (max-width: 40rem) {
   .patient-create__fields {
     grid-template-columns: 1fr;
+  }
+
+  .patient-create {
+    padding: 16px;
+    border-radius: 12px;
   }
 
   .patient-create__actions {

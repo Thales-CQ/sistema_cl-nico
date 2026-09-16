@@ -115,8 +115,8 @@ export default function PatientCreate({ onCreated, onCancel }) {
       </div>
       {saveError && <p className="patient-create__error" role="alert">{saveError}</p>}
       <div className="patient-create__actions">
-        <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
-        <Button type="button" variant="secondary" disabled={saving} onClick={() => { resetForm(); onCancel(); }}>
+        <Button className="patient-create__save" type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+        <Button className="patient-create__cancel" type="button" variant="secondary" disabled={saving} onClick={() => { resetForm(); onCancel(); }}>
           Cancelar
         </Button>
       </div>
