@@ -19,6 +19,19 @@
   display: grid;
   gap: var(--space-4);
   min-width: 0;
+  animation: content-enter 220ms ease-out;
+}
+
+@keyframes content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .main-layout__error {
