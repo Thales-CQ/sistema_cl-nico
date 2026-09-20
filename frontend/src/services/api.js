@@ -86,8 +86,15 @@ export async function healthCheck() {
   return data;
 }
 
-export async function getPatients() {
-  const { response, data } = await request("/patients?page=1&per_page=100");
+export async function getPatients(page = 1, perPage = 20, search = "") {
+  const params = new URLSearchParams({
+    page: String(page),
+    per_page: String(perPage),
+  });
+  const normalizedSearch = String(search ?? "").trim();
+  if (normalizedSearch) params.set("search", normalizedSearch);
+
+  const { response, data } = await request(`/patients?${params.toString()}`);
   if (!response.ok) throw apiError(response, data);
   return data;
 }

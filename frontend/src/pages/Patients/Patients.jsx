@@ -5,6 +5,8 @@ import PatientEdit from "./PatientEdit/PatientEdit";
 import PatientList from "./PatientList/PatientList";
 import "./Patients.css";
 
+const PER_PAGE = 20;
+
 export default function Patients({
   view = "consultar",
   onViewChange,
@@ -12,24 +14,75 @@ export default function Patients({
 }) {
   const creating = view === "cadastrar";
   const [editingPatientId, setEditingPatientId] = useState(null);
-  const [patients, setPatients] = useState([]);
+  const [patientPage, setPatientPage] = useState({ patients: [], total: 0 });
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    let active = true;
-    getPatients().then(
-      (data) => { if (active) setPatients(data.patients); },
-      (failure) => { if (active) setError(failure.message); },
-    ).finally(() => {
-      if (active) setLoading(false);
-    });
-    return () => { active = false; };
-  }, []);
+  const normalizedSearch = search.trim();
+  const editing = !creating && editingPatientId !== null;
 
-  function handleCreated(patient) {
-    setPatients((current) => [...current, patient]);
+  useEffect(() => {
+    if (creating || editing) return;
+
+    let active = true;
+    const timeoutId = setTimeout(() => {
+      setLoading(true);
+      setError("");
+      let correctingPage = false;
+      getPatients(page, PER_PAGE, normalizedSearch).then(
+        (data) => {
+          if (!active) return;
+          setPatientPage({ patients: data.patients, total: data.total });
+          const lastPage = Math.max(1, Math.ceil(data.total / PER_PAGE));
+          if (page > lastPage) {
+            correctingPage = true;
+            setPage(lastPage);
+          }
+        },
+        (failure) => {
+          if (!active) return;
+          setPatientPage({ patients: [], total: 0 });
+          setError(failure.message);
+        },
+      ).finally(() => {
+        if (active && !correctingPage) setLoading(false);
+      });
+    }, 300);
+
+    return () => {
+      active = false;
+      clearTimeout(timeoutId);
+    };
+  }, [page, normalizedSearch, creating, editing]);
+
+  function handleSearchChange(event) {
+    const nextSearch = event.target.value;
+    if (nextSearch.trim() !== normalizedSearch || page !== 1) {
+      setLoading(true);
+      setError("");
+    }
+    setSearch(nextSearch);
+    setPage(1);
+  }
+
+  function handlePageChange(nextPage) {
+    const totalPages = Math.max(1, Math.ceil(patientPage.total / PER_PAGE));
+    if (loading || !Number.isInteger(nextPage) || nextPage < 1 || nextPage > totalPages || nextPage === page) return;
+    setLoading(true);
+    setError("");
+    setPage(nextPage);
+  }
+
+  function handleCreated() {
+    setLoading(true);
+    setPage(1);
+    onViewChange("consultar");
+  }
+
+  function handleCreateCanceled() {
+    setLoading(true);
     onViewChange("consultar");
   }
 
@@ -38,62 +91,35 @@ export default function Patients({
     setEditingPatientId(patient.id);
   }
 
-  function handleUpdated(updatedPatient) {
-    setPatients((current) => current.map((patient) => (
-      patient.id === updatedPatient.id ? updatedPatient : patient
-    )));
+  function handleUpdated() {
+    setLoading(true);
     setEditingPatientId(null);
   }
 
   function handleStatusUpdated(updatedPatient) {
-    setPatients((current) => current.map((patient) => (
-      patient.id === updatedPatient.id ? updatedPatient : patient
-    )));
+    setPatientPage((current) => ({
+      ...current,
+      patients: current.patients.map((patient) => (
+        patient.id === updatedPatient.id ? updatedPatient : patient
+      )),
+    }));
   }
 
-  async function handleEditCanceled() {
-    try {
-      const data = await getPatients();
-      setPatients(data.patients);
-      setError("");
-    } catch (failure) {
-      setError(failure.message);
-    } finally {
-      setEditingPatientId(null);
-    }
+  function handleEditCanceled() {
+    setLoading(true);
+    setEditingPatientId(null);
   }
-
-  const editing = !creating && editingPatientId !== null;
 
   return (
     <section className={`patients${creating ? " patients--creating" : ""}${editing ? " patients--editing" : ""}`} aria-labelledby="patients-title">
-      <header className="patients__header">
-        {creating ? (
-          <h2 id="patients-title">Novo paciente</h2>
-        ) : editing ? (
-          <h2 id="patients-title">Editar paciente</h2>
-        ) : (
-          <>
-            <span id="patients-title" className="patients__accessible-title">Consulta de pacientes</span>
-            <label className="patient-list__search patients__search">
-              <svg className="patient-list__search-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                <circle cx="10.8" cy="10.8" r="6.8" />
-                <path d="m16 16 5 5" />
-              </svg>
-              <span className="patient-list__search-label">Pesquisar paciente</span>
-              <input
-                type="search"
-                value={search}
-                placeholder="Pesquisar paciente"
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
-          </>
-        )}
-      </header>
+      {(creating || editing) && (
+        <header className="patients__header">
+          <h2 id="patients-title">{creating ? "Novo paciente" : "Editar paciente"}</h2>
+        </header>
+      )}
       <div className="patients__content">
         {creating ? (
-          <PatientCreate onCreated={handleCreated} onCancel={() => onViewChange("consultar")} />
+          <PatientCreate onCreated={handleCreated} onCancel={handleCreateCanceled} />
         ) : editing ? (
           <PatientEdit
             patientId={editingPatientId}
@@ -103,10 +129,15 @@ export default function Patients({
           />
         ) : (
           <PatientList
-            patients={patients}
+            patients={patientPage.patients}
             loading={loading}
             error={error}
+            page={page}
+            total={patientPage.total}
+            perPage={PER_PAGE}
             search={search}
+            onSearchChange={handleSearchChange}
+            onPageChange={handlePageChange}
             onEditPatient={handleEditPatient}
           />
         )}

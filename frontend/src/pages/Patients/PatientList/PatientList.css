@@ -1,3 +1,35 @@
+.patient-list__header {
+  margin-bottom: 16px;
+}
+
+.patient-list__results {
+  display: grid;
+  min-width: 0;
+}
+
+.patient-list__results > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.patient-list__results-content--hidden {
+  visibility: hidden;
+}
+
+.patient-list__pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.patient-list__pagination .button {
+  width: auto;
+  flex: 0 1 auto;
+}
+
 .patient-list__message {
   margin: 0;
   overflow-wrap: anywhere;
