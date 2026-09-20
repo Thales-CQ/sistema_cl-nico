@@ -19,10 +19,16 @@ export const navigationItems = [
       },
     ],
   },
+  { id: "agendamentos", label: "Agendamentos", disabled: true },
+  { id: "atendimentos", label: "Atendimentos", disabled: true },
+  { id: "financeiro", label: "Financeiro", disabled: true },
+  { id: "relatorios", label: "Relatórios", disabled: true },
+  { id: "configuracoes", label: "Configurações", disabled: true },
 ];
 
 // Stable objects keep useSyncExternalStore snapshots consistent.
 const destinations = navigationItems.flatMap((module) => {
+  if (module.disabled) return [];
   const items = module.children ?? [module];
   return items.map((item) => ({
     ...item,

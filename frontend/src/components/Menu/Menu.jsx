@@ -103,6 +103,7 @@ export default function Menu({ items = [], currentDestination }) {
                   type="button"
                   className={`menu__link${item.id === activeModuleId ? " menu__link--active" : ""}`}
                   aria-expanded={openId === item.id}
+                  aria-haspopup="true"
                   aria-controls={`${submenuPrefix}-${item.id}`}
                   onClick={() => setOpenId((current) => current === item.id ? null : item.id)}
                 >
@@ -128,6 +129,15 @@ export default function Menu({ items = [], currentDestination }) {
                   ))}
                 </ul>
               </>
+            ) : item.disabled ? (
+              <button
+                type="button"
+                className="menu__link menu__link--disabled"
+                aria-disabled="true"
+                disabled
+              >
+                {item.label}
+              </button>
             ) : (
               <a
                 className="menu__link"
