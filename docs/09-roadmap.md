@@ -57,6 +57,16 @@
 
 ## Versão 0.0.9
 
+- [x] Consulta paginada de pacientes
+- [x] Pesquisa server-side por nome, CPF e telefone
+- [x] Pesquisa tolerante a maiúsculas/minúsculas, acentos e pontuação
+- [x] Paginação com 20 pacientes por página
+- [x] Controles Anterior/Próxima e indicação da página
+- [x] Total de resultados fornecido pela API
+- [x] Estados de carregamento, erro e ausência de resultados
+- [x] Responsividade e acessibilidade da paginação
+- [x] Testes de pesquisa e paginação
+
 - Edição
 - Inativação
 - Testes completos
