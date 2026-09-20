@@ -58,6 +58,7 @@ _MAX_PAGINATION_INTEGER = (1 << 63) - 1
 def list_today_birthdays():
     today = date.today()
     patients = Patient.query.filter(
+        Patient.is_active.is_(True),
         extract("month", Patient.birth_date) == today.month,
         extract("day", Patient.birth_date) == today.day,
     ).order_by(Patient.id.asc()).all()

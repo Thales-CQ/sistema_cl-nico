@@ -528,7 +528,13 @@ def test_list_today_birthdays_returns_only_today_matches(app, authenticated_clie
             birth_date=date(2000, other_day.month, other_day.day),
             sex="M",
         )
-        db.session.add_all([birthday, other_patient])
+        inactive_birthday = Patient(
+            full_name="Aniversariante Inativo",
+            birth_date=date(1995, today.month, today.day),
+            sex="F",
+            is_active=False,
+        )
+        db.session.add_all([birthday, other_patient, inactive_birthday])
         db.session.commit()
         expected = {
             "id": birthday.id,
