@@ -651,11 +651,178 @@ def test_list_patients_serializes_existing_patient(app, authenticated_client):
     assert response.json["total"] == 1
 
 
+def _create_list_patient(full_name, cpf=None, phone=None):
+    return Patient(
+        full_name=full_name,
+        birth_date=date(1990, 5, 20),
+        sex="F",
+        cpf=cpf,
+        phone=phone,
+    )
+
+
+@pytest.mark.parametrize(
+    "search, expected_name",
+    [
+        ("aria sil", "Maria Silva"),
+        ("joao", "JOÃO SILVA"),
+        ("João", "JOÃO SILVA"),
+        ("JOÃO", "JOÃO SILVA"),
+        ("oao sil", "JOÃO SILVA"),
+        ("ana maria", "ANA-MARIA SOUZA"),
+        ("Ana-Maria", "ANA-MARIA SOUZA"),
+        ("ANA.MARIA", "ANA-MARIA SOUZA"),
+        ("na mar", "ANA-MARIA SOUZA"),
+        ("52998224725", "Ana Costa"),
+        ("529.982.247-25", "Ana Costa"),
+        ("31999998888", "Maria Silva"),
+        ("(31) 99999-8888", "Maria Silva"),
+    ],
+)
+def test_list_patients_searches_server_side(
+    app, authenticated_client, search, expected_name
+):
+    with app.app_context():
+        db.session.add_all([
+            _create_list_patient(
+                "Maria Silva", phone="31999998888"
+            ),
+            _create_list_patient(
+                "JOÃO SILVA", cpf="12345678909"
+            ),
+            _create_list_patient(
+                "Ana Costa", cpf="52998224725"
+            ),
+            _create_list_patient("ANA-MARIA SOUZA"),
+        ])
+        db.session.commit()
+
+    response = authenticated_client.get(PATIENTS_URL, query_string={"search": search})
+
+    assert response.status_code == 200
+    assert response.json["total"] == 1
+    assert [patient["full_name"] for patient in response.json["patients"]] == [expected_name]
+
+
+@pytest.mark.parametrize("search", ["", "   ", "\t\n"])
+def test_list_patients_empty_search_does_not_filter(app, authenticated_client, search):
+    with app.app_context():
+        db.session.add_all([
+            _create_list_patient("Maria Silva"),
+            _create_list_patient("João Souza"),
+        ])
+        db.session.commit()
+
+    response = authenticated_client.get(PATIENTS_URL, query_string={"search": search})
+
+    assert response.status_code == 200
+    assert response.json["total"] == 2
+    assert len(response.json["patients"]) == 2
+
+
+@pytest.mark.parametrize("search", ["---", " . / () ", "_%", "’—…", "\u0301"])
+def test_list_patients_punctuation_search_returns_no_results(
+    app, authenticated_client, search
+):
+    with app.app_context():
+        db.session.add(_create_list_patient("JOÃO SILVA"))
+        db.session.commit()
+
+    response = authenticated_client.get(PATIENTS_URL, query_string={"search": search})
+
+    assert response.status_code == 200
+    assert response.json == {"patients": [], "page": 1, "per_page": 20, "total": 0}
+
+
+@pytest.mark.parametrize(
+    "name, search",
+    [
+        ("Maria D’Ávila", "maria davila"),
+        ("MARIA D'ÁVILA", "MARIA D’ÁVILA"),
+        ("JOA\u0303O SILVA", "João"),
+        ("João\tSilva", "joao silva"),
+        ("João\u00a0Silva", "joao-silva"),
+        ("CONCEIÇÃO GONÇALVES", "conceicao goncalves"),
+        ("ÔNG SILVA", "ong"),
+    ],
+)
+def test_list_patients_normalizes_stored_name_and_search_symmetrically(
+    app, authenticated_client, name, search
+):
+    with app.app_context():
+        db.session.add(_create_list_patient(name))
+        db.session.commit()
+
+    response = authenticated_client.get(PATIENTS_URL, query_string={"search": search})
+
+    assert response.status_code == 200
+    assert response.json["total"] == 1
+    assert response.json["patients"][0]["full_name"] == name
+
+
+@pytest.mark.parametrize("search", ["31999998888", "(31) 99999-8888"])
+def test_list_patients_searches_formatted_stored_phone(app, authenticated_client, search):
+    with app.app_context():
+        db.session.add(_create_list_patient("JOÃO SILVA", phone="(31) 99999-8888"))
+        db.session.commit()
+
+    response = authenticated_client.get(PATIENTS_URL, query_string={"search": search})
+
+    assert response.status_code == 200
+    assert response.json["total"] == 1
+
+
+def test_list_patients_search_paginates_filtered_results(app, authenticated_client):
+    with app.app_context():
+        db.session.add_all([
+            _create_list_patient("JOÃO SILVA"),
+            _create_list_patient("ANA-MARIA SILVA"),
+            _create_list_patient("ANA MARIA SOUZA"),
+            _create_list_patient("ANA.MARIA COSTA"),
+        ])
+        db.session.commit()
+
+    response = authenticated_client.get(
+        PATIENTS_URL, query_string={"search": "ana maria", "page": 2, "per_page": 2}
+    )
+
+    assert response.status_code == 200
+    assert response.json["page"] == 2
+    assert response.json["per_page"] == 2
+    assert response.json["total"] == 3
+    assert [patient["full_name"] for patient in response.json["patients"]] == [
+        "ANA.MARIA COSTA"
+    ]
+
+
+def test_list_patients_search_page_beyond_last_returns_empty(app, authenticated_client):
+    with app.app_context():
+        db.session.add(_create_list_patient("Maria Silva"))
+        db.session.commit()
+
+    response = authenticated_client.get(
+        f"{PATIENTS_URL}?search=maria&page=2&per_page=1"
+    )
+
+    assert response.status_code == 200
+    assert response.json == {
+        "patients": [],
+        "page": 2,
+        "per_page": 1,
+        "total": 1,
+    }
+
+
 @pytest.mark.parametrize(
     "query",
     [
         "page=0",
         "page=invalid",
+        "page=-1",
+        "page=1.5",
+        f"page={10**30}",
+        f"page={2**63}&per_page=1",
+        f"page={((2**63 - 1) // 20) + 2}&per_page=20",
         "per_page=0",
         "per_page=101",
         "per_page=invalid",
@@ -665,6 +832,17 @@ def test_list_patients_rejects_invalid_pagination(authenticated_client, query):
     response = authenticated_client.get(f"{PATIENTS_URL}?{query}")
 
     assert response.status_code == 400
+    assert response.json == {"error": "Paginação inválida."}
+
+
+def test_list_patients_accepts_largest_safe_offset(authenticated_client):
+    page = ((2**63 - 1) // 20) + 1
+    response = authenticated_client.get(
+        PATIENTS_URL, query_string={"page": page, "per_page": 20},
+    )
+
+    assert response.status_code == 200
+    assert response.json == {"patients": [], "page": page, "per_page": 20, "total": 0}
 
 
 def test_create_patient_without_session_or_csrf_returns_403(client):

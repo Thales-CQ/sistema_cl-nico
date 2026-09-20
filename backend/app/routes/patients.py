@@ -1,11 +1,12 @@
 from datetime import date
 
 from flask import Blueprint, jsonify, request
-from sqlalchemy import extract
+from sqlalchemy import extract, or_
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
 from app.models import Patient
+from app.patient_search import normalize_patient_search, normalized_patient_column
 from app.security import protect_csrf, resolve_active_user
 from app.validators.patient import PATIENT_VALIDATORS, validate_patient
 
@@ -48,6 +49,9 @@ def _serialize_birthday_patient(patient):
         "full_name": patient.full_name,
         "birth_date": patient.birth_date.isoformat(),
     }
+
+
+_MAX_PAGINATION_INTEGER = (1 << 63) - 1
 
 
 @patients_bp.get("/birthdays/today")
@@ -152,8 +156,24 @@ def list_patients():
         return jsonify({"error": "Paginação inválida."}), 400
     if page < 1 or per_page < 1 or per_page > 100:
         return jsonify({"error": "Paginação inválida."}), 400
+    # SQLite binds signed 64-bit integers; keep page and OFFSET safe on both DBs.
+    if page > _MAX_PAGINATION_INTEGER or (page - 1) * per_page > _MAX_PAGINATION_INTEGER:
+        return jsonify({"error": "Paginação inválida."}), 400
 
-    pagination = Patient.query.order_by(Patient.id.asc()).paginate(
+    raw_search = request.args.get("search", "").strip()
+    search = normalize_patient_search(raw_search)
+    query = Patient.query
+    if raw_search and not search:
+        query = query.filter(False)
+    elif search:
+        search_pattern = f"%{search}%"
+        query = query.filter(or_(
+            normalized_patient_column(Patient.full_name).like(search_pattern),
+            normalized_patient_column(Patient.cpf).like(search_pattern),
+            normalized_patient_column(Patient.phone).like(search_pattern),
+        ))
+
+    pagination = query.order_by(Patient.id.asc()).paginate(
         page=page, per_page=per_page, error_out=False
     )
     return jsonify({
