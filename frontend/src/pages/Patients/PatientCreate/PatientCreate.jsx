@@ -50,6 +50,7 @@ export default function PatientCreate({
       phone: phone || null,
       email: email || null,
     };
+    if (editing) payload.is_active = patient.is_active;
     setSaving(true);
     setSaveError("");
     setFieldErrors({});

@@ -227,6 +227,109 @@ def test_update_patient_applies_partial_normalized_fields_and_preserves_others(
     assert response.json["patient"]["created_at"] == created_at.isoformat()
 
 
+@pytest.mark.parametrize("is_active", [False, True])
+def test_update_patient_applies_fields_and_status_atomically(
+    app, authenticated_client, is_active,
+):
+    with app.app_context():
+        patient = Patient(
+            full_name="Maria Silva",
+            birth_date=date(1990, 5, 20),
+            sex="F",
+            is_active=not is_active,
+        )
+        db.session.add(patient)
+        db.session.commit()
+        patient_id = patient.id
+
+    token = authenticated_client.get(f"{AUTH_BASE}/me").json["csrf_token"]
+    response = authenticated_client.patch(
+        PATIENT_UPDATE_URL.format(patient_id=patient_id),
+        json={"full_name": "Ana Souza", "is_active": is_active},
+        headers={"X-CSRF-Token": token},
+    )
+
+    assert response.status_code == 200
+    assert response.json["patient"]["full_name"] == "ANA SOUZA"
+    assert response.json["patient"]["is_active"] is is_active
+    with app.app_context():
+        saved = db.session.get(Patient, patient_id)
+        assert saved.full_name == "ANA SOUZA"
+        assert saved.is_active is is_active
+
+
+@pytest.mark.parametrize("is_active", ["true", "false", 0, 1, None, [], {}])
+def test_update_patient_rejects_invalid_status_without_changes(
+    app, authenticated_client, is_active,
+):
+    with app.app_context():
+        patient = Patient(
+            full_name="Maria Silva",
+            birth_date=date(1990, 5, 20),
+            sex="F",
+            is_active=True,
+        )
+        db.session.add(patient)
+        db.session.commit()
+        patient_id = patient.id
+
+    token = authenticated_client.get(f"{AUTH_BASE}/me").json["csrf_token"]
+    response = authenticated_client.patch(
+        PATIENT_UPDATE_URL.format(patient_id=patient_id),
+        json={"full_name": "Ana Souza", "is_active": is_active},
+        headers={"X-CSRF-Token": token},
+    )
+
+    assert response.status_code == 400
+    assert response.json == {
+        "error": "Dados inválidos.",
+        "errors": {"is_active": "is_active deve ser booleano."},
+    }
+    with app.app_context():
+        saved = db.session.get(Patient, patient_id)
+        assert saved.full_name == "Maria Silva"
+        assert saved.is_active is True
+
+
+def test_update_patient_rejects_duplicate_cpf_without_partial_changes(
+    app, authenticated_client,
+):
+    with app.app_context():
+        existing = Patient(
+            full_name="Maria Silva",
+            birth_date=date(1990, 5, 20),
+            sex="F",
+            cpf="52998224725",
+        )
+        patient = Patient(
+            full_name="Ana Costa",
+            birth_date=date(1991, 6, 21),
+            sex="F",
+            is_active=True,
+        )
+        db.session.add_all([existing, patient])
+        db.session.commit()
+        patient_id = patient.id
+
+    token = authenticated_client.get(f"{AUTH_BASE}/me").json["csrf_token"]
+    response = authenticated_client.patch(
+        PATIENT_UPDATE_URL.format(patient_id=patient_id),
+        json={
+            "full_name": "Nome Não Persistido",
+            "cpf": "529.982.247-25",
+            "is_active": False,
+        },
+        headers={"X-CSRF-Token": token},
+    )
+
+    assert response.status_code == 409
+    with app.app_context():
+        saved = db.session.get(Patient, patient_id)
+        assert saved.full_name == "Ana Costa"
+        assert saved.cpf is None
+        assert saved.is_active is True
+
+
 def test_update_patient_allows_keeping_own_cpf(app, authenticated_client):
     with app.app_context():
         patient = Patient(
@@ -313,9 +416,7 @@ def test_update_patient_rejects_internal_fields_and_empty_payload(
 
     assert internal_response.status_code == 400
     assert internal_response.json["error"] == "Campos não permitidos."
-    assert set(internal_response.json["fields"]) == {
-        "id", "is_active", "created_at", "updated_at",
-    }
+    assert set(internal_response.json["fields"]) == {"id", "created_at", "updated_at"}
     assert empty_response.status_code == 400
 
 
@@ -448,6 +549,77 @@ def test_update_patient_status_reactivates_patient(app, authenticated_client):
     assert response.json["patient"]["is_active"] is True
     with app.app_context():
         assert db.session.get(Patient, patient_id).is_active is True
+
+
+def test_patient_lifecycle_preserves_history_and_birthday_visibility(
+    authenticated_client,
+):
+    def csrf_headers():
+        token = authenticated_client.get(f"{AUTH_BASE}/me").json["csrf_token"]
+        return {"X-CSRF-Token": token}
+
+    today = date.today().isoformat()
+    response = authenticated_client.post(
+        PATIENTS_URL,
+        json={
+            "full_name": "Paciente Fluxo",
+            "birth_date": today,
+            "sex": "F",
+        },
+        headers=csrf_headers(),
+    )
+    assert response.status_code == 201
+    patient_id = response.json["patient"]["id"]
+
+    response = authenticated_client.get(PATIENT_DETAILS_URL.format(patient_id=patient_id))
+    assert response.status_code == 200
+    assert response.json["patient"]["is_active"] is True
+
+    response = authenticated_client.patch(
+        PATIENT_UPDATE_URL.format(patient_id=patient_id),
+        json={"full_name": "Paciente Fluxo Atualizado"},
+        headers=csrf_headers(),
+    )
+    assert response.status_code == 200
+    assert response.json["patient"]["full_name"] == "PACIENTE FLUXO ATUALIZADO"
+
+    response = authenticated_client.patch(
+        PATIENT_STATUS_URL.format(patient_id=patient_id),
+        json={"is_active": False},
+        headers=csrf_headers(),
+    )
+    assert response.status_code == 200
+    assert response.json["patient"]["is_active"] is False
+
+    response = authenticated_client.get(PATIENT_DETAILS_URL.format(patient_id=patient_id))
+    assert response.status_code == 200
+    assert response.json["patient"]["is_active"] is False
+
+    response = authenticated_client.get(PATIENTS_URL)
+    assert response.status_code == 200
+    assert response.json["total"] == 1
+    assert response.json["patients"][0]["id"] == patient_id
+    assert response.json["patients"][0]["is_active"] is False
+
+    response = authenticated_client.get(BIRTHDAYS_URL)
+    assert response.status_code == 200
+    assert response.json == {"patients": []}
+
+    response = authenticated_client.patch(
+        PATIENT_STATUS_URL.format(patient_id=patient_id),
+        json={"is_active": True},
+        headers=csrf_headers(),
+    )
+    assert response.status_code == 200
+    assert response.json["patient"]["is_active"] is True
+
+    response = authenticated_client.get(PATIENT_DETAILS_URL.format(patient_id=patient_id))
+    assert response.status_code == 200
+    assert response.json["patient"]["is_active"] is True
+
+    response = authenticated_client.get(BIRTHDAYS_URL)
+    assert response.status_code == 200
+    assert [patient["id"] for patient in response.json["patients"]] == [patient_id]
 
 
 def test_update_patient_status_returns_not_found_for_unknown_patient(
@@ -726,6 +898,22 @@ def test_list_patients_empty_search_does_not_filter(app, authenticated_client, s
     assert len(response.json["patients"]) == 2
 
 
+def test_list_patients_is_alphabetical_with_or_without_search(app, authenticated_client):
+    with app.app_context():
+        db.session.add_all([
+            _create_list_patient("Zélia Souza"),
+            _create_list_patient("Ana Costa"),
+            _create_list_patient("Bruno Lima"),
+        ])
+        db.session.commit()
+
+    expected = ["Ana Costa", "Bruno Lima", "Zélia Souza"]
+    for query_string in ({}, {"search": "a"}):
+        response = authenticated_client.get(PATIENTS_URL, query_string=query_string)
+        assert response.status_code == 200
+        assert [patient["full_name"] for patient in response.json["patients"]] == expected
+
+
 @pytest.mark.parametrize("search", ["---", " . / () ", "_%", "’—…", "\u0301"])
 def test_list_patients_punctuation_search_returns_no_results(
     app, authenticated_client, search
@@ -797,7 +985,7 @@ def test_list_patients_search_paginates_filtered_results(app, authenticated_clie
     assert response.json["per_page"] == 2
     assert response.json["total"] == 3
     assert [patient["full_name"] for patient in response.json["patients"]] == [
-        "ANA.MARIA COSTA"
+        "ANA MARIA SOUZA"
     ]
 
 

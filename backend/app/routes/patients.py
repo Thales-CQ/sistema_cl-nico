@@ -113,17 +113,25 @@ def update_patient(patient_id):
     if not isinstance(data, dict):
         return jsonify({"error": "Envie um objeto JSON válido."}), 400
 
-    unknown_fields = sorted(set(data) - PATIENT_VALIDATORS.keys())
+    allowed_fields = set(PATIENT_VALIDATORS) | {"is_active"}
+    unknown_fields = sorted(set(data) - allowed_fields)
     if unknown_fields:
         return jsonify({
             "error": "Campos não permitidos.",
             "fields": unknown_fields,
         }), 400
 
-    normalized, errors = validate_patient(data, partial=True)
+    if "is_active" in data and not isinstance(data["is_active"], bool):
+        return jsonify({
+            "error": "Dados inválidos.",
+            "errors": {"is_active": "is_active deve ser booleano."},
+        }), 400
+
+    editable_data = {field: value for field, value in data.items() if field != "is_active"}
+    normalized, errors = validate_patient(editable_data, partial=True)
     if errors:
         return jsonify({"error": "Dados inválidos.", "errors": errors}), 400
-    if not normalized:
+    if not normalized and "is_active" not in data:
         return jsonify({"error": "Informe ao menos um campo para atualizar."}), 400
 
     cpf = normalized.get("cpf")
@@ -134,6 +142,8 @@ def update_patient(patient_id):
 
     for field, value in normalized.items():
         setattr(patient, field, value)
+    if "is_active" in data:
+        patient.is_active = data["is_active"]
 
     try:
         db.session.commit()
@@ -174,7 +184,10 @@ def list_patients():
             normalized_patient_column(Patient.phone).like(search_pattern),
         ))
 
-    pagination = query.order_by(Patient.id.asc()).paginate(
+    pagination = query.order_by(
+        normalized_patient_column(Patient.full_name).asc(),
+        Patient.id.asc(),
+    ).paginate(
         page=page, per_page=per_page, error_out=False
     )
     return jsonify({
