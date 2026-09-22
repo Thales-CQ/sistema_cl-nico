@@ -79,18 +79,22 @@
 
   .patients--creating .patients__header,
   .patients--editing .patients__header,
-  .patient-create {
+  .users .users__header,
+  .patient-create,
+  .users .user-form {
     max-width: none;
   }
 
-  .patient-list__table-wrapper {
+  .patient-list__table-wrapper,
+  .user-list__wrapper {
     min-width: 0;
     overflow: visible;
     border: 0;
     box-shadow: none;
   }
 
-  .patient-list__table {
+  .patient-list__table,
+  .user-list__table {
     display: block;
     min-width: 0;
     background: transparent;
@@ -98,7 +102,8 @@
   }
 
   /* Preserve table headings for assistive technology, as in the existing cards. */
-  .patient-list__table thead {
+  .patient-list__table thead,
+  .user-list__table thead {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -109,12 +114,14 @@
     white-space: nowrap;
   }
 
-  .patient-list__table tbody {
+  .patient-list__table tbody,
+  .user-list__table tbody {
     display: grid;
     gap: var(--space-3);
   }
 
-  .patient-list__table tr {
+  .patient-list__table tr,
+  .user-list__table tr {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-3) var(--space-6);
@@ -127,7 +134,8 @@
     box-shadow: var(--shadow-card);
   }
 
-  .patient-list__table td {
+  .patient-list__table td,
+  .user-list__table td {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     align-content: start;
@@ -139,47 +147,58 @@
     overflow-wrap: anywhere;
   }
 
-  .patient-list__table td::before {
+  .patient-list__table td::before,
+  .user-list__table td::before {
     content: attr(data-label);
     font-weight: var(--font-weight-medium);
     color: var(--color-text-muted);
   }
 
-  .patient-list__status {
+  .patient-list__status,
+  .user-list__status {
     width: max-content;
     flex-shrink: 0;
     white-space: nowrap;
   }
 
-  .patient-list__status::before {
+  .patient-list__status::before,
+  .user-list__status::before {
     flex-shrink: 0;
   }
 
-  .patient-list__actions {
+  .patient-list__actions,
+  .user-list__actions {
     min-width: max-content;
   }
 
-  .patient-list__actions .button {
+  .patient-list__actions .button,
+  .user-list__actions .button,
+  .user-list__edit.button:not(:disabled) {
     flex: 0 0 auto;
     min-width: max-content;
     min-height: var(--control-height);
     white-space: nowrap;
   }
 
-  .patient-create__fields {
+  .patient-create__fields,
+  .users .user-form__fields {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
   }
 
   .patient-create__field input,
-  .patient-create__field select {
+  .patient-create__field select,
+  .users .user-form__field input,
+  .users .user-form__field select {
     min-height: var(--control-height);
   }
 
-  .patient-create__actions {
+  .patient-create__actions,
+  .users .user-form__actions {
     align-items: center;
   }
 
-  .patient-create__actions .button {
+  .patient-create__actions .button,
+  .users .user-form__actions .button {
     flex: 0 0 auto;
     white-space: nowrap;
   }

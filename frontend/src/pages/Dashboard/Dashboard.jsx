@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getPatients, getTodayBirthdays } from "../../services/api";
+import { displayUserName } from "../../services/displayUserName";
 import "./Dashboard.css";
 
 export default function Dashboard({ user }) {
@@ -30,13 +31,14 @@ export default function Dashboard({ user }) {
   }, []);
 
   const isEmpty = totalPatients === 0;
+  const displayName = displayUserName(user);
 
   return (
     <section className="dashboard" aria-labelledby="dashboard-title">
       <header className="dashboard__intro">
         <h1 id="dashboard-title">Início</h1>
-        {user?.username && (
-          <p className="dashboard__greeting">Olá, {user.username}!</p>
+        {displayName && (
+          <p className="dashboard__greeting">Olá, {displayName}!</p>
         )}
         <p className="dashboard__description">
           Acompanhe o resumo da clínica e acesse rapidamente a gestão de pacientes.

@@ -5,12 +5,15 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
 from app.models import User
+from app.user_api import UserAPIError, user_write, validated_payload
 from app.security import (
     CSRF_COOKIE,
     generate_csrf_token,
     protect_csrf,
     resolve_active_user,
 )
+from app.validators.user import normalize_username, validate_password
+from app.user_identity import matching_user_ids
 
 
 auth_bp = Blueprint("auth", __name__)
@@ -19,7 +22,11 @@ _DUMMY_HASH = generate_password_hash(secrets.token_urlsafe(32))
 
 
 def _serialize_user(user):
-    return {"id": user.id, "username": user.username, "theme": user.theme}
+    return {
+        "id": user.id, "username": user.username, "full_name": user.full_name,
+        "theme": user.theme,
+        "is_admin": user.is_admin,
+    }
 
 
 def _response(payload, status=200):
@@ -63,11 +70,16 @@ def login():
     password = data.get("password")
     if not isinstance(username, str) or not isinstance(password, str):
         return _response({"error": "Username e password devem ser textos não vazios."}, 400)
-    username = username.strip().lower()
-    if not username or not password.strip():
+    try:
+        username = normalize_username(username)
+    except ValueError:
+        return _response({"error": "Username e password devem ser textos não vazios."}, 400)
+    if not password or password.isspace():
         return _response({"error": "Username e password devem ser textos não vazios."}, 400)
 
-    user = User.query.filter_by(username=username).first()
+    matches = matching_user_ids("username", username)
+    # Never choose one of two legacy accounts with the same canonical name.
+    user = db.session.get(User, matches[0]) if len(matches) == 1 else None
     # Perform a hash verification even when the username does not exist.
     valid_password = (
         user.check_password(password)
@@ -121,3 +133,23 @@ def update_preferences():
 def logout():
     session.clear()
     return _response({"message": "Sessão encerrada."})
+
+
+def current_password_text(value):
+    # Legacy passwords may predate the current minimum policy.
+    if not isinstance(value, str) or not value:
+        raise ValueError("A senha atual deve ser um texto não vazio.")
+    return value
+
+
+@auth_bp.patch("/me/password")
+@user_write()
+def change_own_password(actor):
+    data = validated_payload(
+        {"current_password": current_password_text, "new_password": validate_password},
+        required={"current_password", "new_password"},
+    )
+    if not actor.check_password(data["current_password"]):
+        raise UserAPIError("Senha atual incorreta.", 403)
+    actor.set_password(data["new_password"])
+    return jsonify({"message": "Senha atualizada com sucesso."})

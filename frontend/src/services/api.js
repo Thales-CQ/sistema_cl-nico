@@ -2,7 +2,6 @@ const API_URL = "/api/v1";
 let csrfToken = null;
 let sessionCheck = null;
 let authQueue = Promise.resolve();
-
 const unauthorizedListeners = new Set();
 
 export function onUnauthorized(listener) {
@@ -191,4 +190,77 @@ export async function getPreferences(signal) {
   });
   if (!response.ok) throw apiError(response, data);
   return data;
+}
+
+// User writes share the authentication queue so session/CSRF rotation cannot
+// overtake a password or account update made by this tab.
+function writeUser(path, method, payload) {
+  return enqueueAuth(async () => {
+    if (!csrfToken) await readSession();
+    const { response, data } = await request(path, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw apiError(response, data);
+    return data;
+  });
+}
+
+export async function getUsers() {
+  const { response, data } = await request("/users", { cache: "no-store" });
+  if (!response.ok) throw apiError(response, data);
+  return data;
+}
+
+export async function getUser(userId) {
+  const { response, data } = await request(`/users/${userId}`, { cache: "no-store" });
+  if (!response.ok) throw apiError(response, data);
+  return data;
+}
+
+export function createUser(payload) {
+  return writeUser("/users", "POST", payload);
+}
+
+export function updateUser(userId, payload) {
+  return writeUser(`/users/${userId}`, "PATCH", payload);
+}
+
+export function updateUserStatus(userId, isActive) {
+  return writeUser(`/users/${userId}/status`, "PATCH", { is_active: isActive });
+}
+
+export function resetUserPassword(userId, newPassword) {
+  return writeUser(`/users/${userId}/password`, "PATCH", { new_password: newPassword });
+}
+
+export async function getProfiles() {
+  const { response, data } = await request("/profiles", { cache: "no-store" });
+  if (!response.ok) throw apiError(response, data);
+  return data;
+}
+
+export async function getProfile(profileId) {
+  const { response, data } = await request(`/profiles/${profileId}`, { cache: "no-store" });
+  if (!response.ok) throw apiError(response, data);
+  return data;
+}
+
+export function createProfile(payload) {
+  return writeUser("/profiles", "POST", payload);
+}
+
+export function updateProfile(profileId, payload) {
+  return writeUser(`/profiles/${profileId}`, "PATCH", payload);
+}
+
+export function changeOwnPassword(currentPassword, newPassword) {
+  return writeUser("/auth/me/password", "PATCH", {
+    current_password: currentPassword,
+    new_password: newPassword,
+  });
 }

@@ -1,10 +1,11 @@
 import BrandMark from "../BrandMark/BrandMark";
 import Button from "../Button/Button";
 import ThemeToggle from "../ThemeToggle/ThemeToggle";
+import { displayUserName } from "../../services/displayUserName";
 import "./Header.css";
 
 export default function Header({ user, onLogout, operationLoading = false }) {
-  const username = user?.username?.trim();
+  const displayName = displayUserName(user);
 
   return (
     <header className="header">
@@ -19,11 +20,11 @@ export default function Header({ user, onLogout, operationLoading = false }) {
         </div>
 
         <div className="header__account">
-          {username && (
+          {displayName && (
             <div className="header__identity">
               <span className="header__identity-details">
                 <span className="header__identity-label">Usuário</span>
-                <strong>{username}</strong>
+                <strong>{displayName}</strong>
               </span>
             </div>
           )}

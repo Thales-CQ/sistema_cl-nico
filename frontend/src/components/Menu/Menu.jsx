@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import "./Menu.css";
 
 export default function Menu({ items = [], currentDestination }) {
-  const [openId, setOpenId] = useState(null);
+  const [openIds, setOpenIds] = useState([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const mobileMenuButtonRef = useRef(null);
@@ -14,17 +14,17 @@ export default function Menu({ items = [], currentDestination }) {
   const activeRouteId = currentDestination?.routeId ?? currentDestination?.id;
 
   useEffect(() => {
-    if (openId === null && !mobileMenuOpen) return;
+    if (openIds.length === 0 && !mobileMenuOpen) return;
 
     function closeOutside(event) {
       if (!menuRef.current?.contains(event.target)) {
-        setOpenId(null);
+        setOpenIds([]);
         setMobileMenuOpen(false);
       }
     }
 
     function closeOnNavigation() {
-      setOpenId(null);
+      setOpenIds([]);
       setMobileMenuOpen(false);
     }
 
@@ -36,23 +36,24 @@ export default function Menu({ items = [], currentDestination }) {
       document.removeEventListener("focusin", closeOutside);
       window.removeEventListener("hashchange", closeOnNavigation);
     };
-  }, [openId, mobileMenuOpen]);
+  }, [openIds, mobileMenuOpen]);
 
   function closeSubmenuAndRestoreFocus() {
-    if (openId === null) return;
-    triggerRefs.current[openId]?.focus();
-    setOpenId(null);
+    const currentId = openIds.at(-1);
+    if (currentId === undefined) return;
+    triggerRefs.current[currentId]?.focus();
+    setOpenIds((current) => current.slice(0, -1));
   }
 
   function closeNavigation() {
-    setOpenId(null);
+    setOpenIds([]);
     setMobileMenuOpen(false);
   }
 
   function handleKeyDown(event) {
     if (event.key !== "Escape") return;
 
-    if (openId !== null) {
+    if (openIds.length > 0) {
       event.preventDefault();
       event.stopPropagation();
       closeSubmenuAndRestoreFocus();
@@ -82,7 +83,7 @@ export default function Menu({ items = [], currentDestination }) {
         aria-controls={mainMenuId}
         aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
         onClick={() => {
-          setOpenId(null);
+          setOpenIds([]);
           setMobileMenuOpen((current) => !current);
         }}
       >
@@ -94,39 +95,36 @@ export default function Menu({ items = [], currentDestination }) {
       </button>
 
       <ul id={mainMenuId} className="menu__list">
-        {items.map((item) => (
+        {renderItems(items, submenuPrefix)}
+      </ul>
+    </nav>
+  );
+
+  function renderItems(menuItems, idPrefix) {
+    return menuItems.map((item) => (
           <li className="menu__item" key={item.id}>
             {item.children?.length ? (
               <>
                 <button
                   ref={(node) => { triggerRefs.current[item.id] = node; }}
                   type="button"
-                  className={`menu__link${item.id === activeModuleId ? " menu__link--active" : ""}`}
-                  aria-expanded={openId === item.id}
+                  className={`menu__link${item.id === activeModuleId || item.pageId === currentDestination?.id ? " menu__link--active" : ""}`}
+                  aria-expanded={openIds.includes(item.id)}
                   aria-haspopup="true"
-                  aria-controls={`${submenuPrefix}-${item.id}`}
-                  onClick={() => setOpenId((current) => current === item.id ? null : item.id)}
+                  aria-controls={`${idPrefix}-${item.id}`}
+                  onClick={() => setOpenIds((current) => current.includes(item.id)
+                    ? current.filter((id) => id !== item.id)
+                    : [...current, item.id])}
                 >
                   {item.label}
                 </button>
                 <ul
-                  id={`${submenuPrefix}-${item.id}`}
+                  id={`${idPrefix}-${item.id}`}
                   className="menu__submenu"
                   aria-label={item.label}
-                  hidden={openId !== item.id}
+                  hidden={!openIds.includes(item.id)}
                 >
-                  {item.children.map((child) => (
-                    <li key={child.id}>
-                      <a
-                        className="menu__link"
-                        href={child.href}
-                        aria-current={child.id === activeRouteId ? "page" : undefined}
-                        onClick={closeNavigation}
-                      >
-                        {child.label}
-                      </a>
-                    </li>
-                  ))}
+                  {renderItems(item.children, `${idPrefix}-${item.id}`)}
                 </ul>
               </>
             ) : item.disabled ? (
@@ -142,15 +140,13 @@ export default function Menu({ items = [], currentDestination }) {
               <a
                 className="menu__link"
                 href={item.href}
-                aria-current={item.id === activeRouteId ? "page" : undefined}
+                aria-current={(item.routeId ?? item.id) === activeRouteId || item.id === activeRouteId ? "page" : undefined}
                 onClick={closeNavigation}
               >
                 {item.label}
               </a>
             )}
           </li>
-        ))}
-      </ul>
-    </nav>
-  );
+        ));
+  }
 }

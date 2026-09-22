@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AuthContext } from "./AuthContext";
 import * as api from "../services/api";
 import { notifyThemeChange, startThemeSync } from "../services/themeSync";
@@ -81,7 +81,31 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const reconcileUser = useCallback((updatedUser) => {
+    setUser((current) => {
+      if (!current || current.id !== updatedUser.id) return current;
+      if (!updatedUser.is_active) return null;
+      return {
+        ...current, username: updatedUser.username,
+        full_name: updatedUser.full_name, is_admin: updatedUser.is_admin,
+      };
+    });
+  }, []);
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const sessionUser = await api.getSession();
+      if (mounted.current) setUser((current) => (
+        current && (!sessionUser || current.id === sessionUser.id) ? sessionUser : current
+      ));
+    } catch {
+      // A failed administrative screen remains blocked on transient errors.
+    }
+  }, []);
+
   const value = {
+    reconcileUser,
+    refreshSession,
     user,
     isAuthenticated: Boolean(user),
     initialLoading,

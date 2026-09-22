@@ -1,6 +1,6 @@
 from flask import Flask
 
-from .commands import create_admin
+from .commands import complete_legacy_user, create_admin, normalize_users
 from .config import Config
 from .extensions import db, migrate
 from .models import User
@@ -22,5 +22,7 @@ def create_app():
 
     # Registra os comandos administrativos do Flask CLI.
     app.cli.add_command(create_admin)
+    app.cli.add_command(complete_legacy_user)
+    app.cli.add_command(normalize_users)
 
     return app

@@ -49,20 +49,32 @@ def login(client, username="admin", password=PASSWORD):
     )
 
 
-@pytest.mark.parametrize("username", ["admin", "  ADMIN  "])
+@pytest.mark.parametrize("username", ["admin", "ADMIN", "Admin", "aDmIn", "  ADMIN  "])
 def test_login_and_me(client, username):
     response = login(client, username)
     assert response.status_code == 200
-    assert response.json["user"] == {"id": 1, "username": "admin", "theme": None}
+    assert response.json["user"] == {"id": 1, "username": "ADMIN", "full_name": None,
+                                    "theme": None, "is_admin": False}
     assert "password_hash" not in response.get_data(as_text=True)
     assert PASSWORD not in response.get_data(as_text=True)
     with client.session_transaction() as session:
         assert dict(session) == {"user_id": 1, "_permanent": True}
     response = client.get(f"{BASE}/me")
     assert response.status_code == 200
-    assert set(response.json["user"]) == {"id", "username"}
+    assert set(response.json["user"]) == {"id", "username", "full_name", "theme", "is_admin"}
     assert "password_hash" not in response.get_data(as_text=True)
     assert response.headers["Cache-Control"] == "no-store"
+
+
+def test_auth_responses_expose_full_name_without_password(app, client):
+    with app.app_context():
+        user = db.session.get(User, 1)
+        user.full_name = "THALES COSTA QUEIROGA"
+        db.session.commit()
+    for response in [login(client), client.get(f"{BASE}/me")]:
+        assert response.json["user"]["full_name"] == "THALES COSTA QUEIROGA"
+        assert "password" not in response.json["user"]
+        assert "password_hash" not in response.json["user"]
 
 
 def test_login_marks_session_permanent(client):
@@ -333,7 +345,8 @@ def test_login_logout_with_api_csrf_cookie(client):
         headers={"X-CSRF-Token": token, "Origin": origin},
     )
     assert response.status_code == 200
-    assert response.json["user"] == {"id": 1, "username": "admin", "theme": None}
+    assert response.json["user"] == {"id": 1, "username": "ADMIN", "full_name": None,
+                                    "theme": None, "is_admin": False}
     with client.session_transaction() as session:
         assert dict(session) == {"user_id": 1, "_permanent": True}
     token = response.json["csrf_token"]
@@ -444,3 +457,22 @@ def test_preferences_sync_does_not_read_another_users_theme(app, client):
     assert login(client, "other").status_code == 200
     response = client.get(f"{BASE}/me/preferences?user_id=1")
     assert response.json == {"user": {"id": 2, "theme": "light"}}
+
+
+@pytest.mark.parametrize("is_admin", [False, True])
+def test_session_exposes_admin_flag_and_preserves_theme(app, client, is_admin):
+    with app.app_context():
+        user = db.session.get(User, 1)
+        user.is_admin = is_admin
+        user.theme = "dark"
+        db.session.commit()
+    for response in [login(client), client.get(f"{BASE}/me")]:
+        assert response.status_code == 200
+        assert response.json["user"] == {
+            "id": 1, "username": "ADMIN", "full_name": None,
+            "theme": "dark", "is_admin": is_admin,
+        }
+        assert "password" not in response.get_data(as_text=True)
+    response = client.patch(f"{BASE}/me/preferences", json={"theme": "light"},
+                            headers=csrf_headers(client))
+    assert response.json["user"]["is_admin"] is is_admin

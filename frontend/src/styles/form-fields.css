@@ -1,17 +1,17 @@
 /* Shared presentation for form guidance and field validation. */
-:is(.login__form, .patient-create) :is(input, select) {
+:is(.login__form, .patient-create, .user-form) :is(input, select) {
   text-align: center;
 }
 
-form.patient-create
-  .patient-create__field > select {
+:is(form.patient-create, form.user-form)
+  :is(.patient-create__field, .user-form__field) > select {
   appearance: none;
   grid-area: 2 / 1;
   padding-inline: calc(var(--space-6) + var(--space-3));
 }
 
-form.patient-create
-  .patient-create__field:has(> select)::after {
+:is(form.patient-create, form.user-form)
+  :is(.patient-create__field, .user-form__field):has(> select)::after {
   content: "";
   grid-area: 2 / 1;
   align-self: center;
@@ -26,16 +26,16 @@ form.patient-create
   pointer-events: none;
 }
 
-form.patient-create
-  .patient-create__field:has(> select:disabled)::after {
+:is(form.patient-create, form.user-form)
+  :is(.patient-create__field, .user-form__field):has(> select:disabled)::after {
   color: var(--color-disabled-text);
 }
 
-.patient-create option {
+:is(.patient-create, .user-form) option {
   text-align: center;
 }
 
-:is(.login__form, .patient-create) input::placeholder {
+:is(.login__form, .patient-create, .user-form) input::placeholder {
   color: var(--color-text-muted);
   font-weight: 400;
   text-align: center;
@@ -51,20 +51,20 @@ form.patient-create
   overflow-wrap: anywhere;
 }
 
-:is(form.login__form, form.patient-create)
-  :is(.login__field, .patient-create__field)
+:is(form.login__form, form.patient-create, form.user-form)
+  :is(.login__field, .patient-create__field, .user-form__field)
   :is(input, select)[aria-invalid="true"] {
   border-color: var(--color-error);
 }
 
-:is(form.login__form, form.patient-create)
-  :is(.login__field, .patient-create__field)
+:is(form.login__form, form.patient-create, form.user-form)
+  :is(.login__field, .patient-create__field, .user-form__field)
   :is(input, select)[aria-invalid="true"]:hover:not(:disabled) {
   border-color: var(--color-error);
 }
 
-:is(form.login__form, form.patient-create)
-  :is(.login__field, .patient-create__field)
+:is(form.login__form, form.patient-create, form.user-form)
+  :is(.login__field, .patient-create__field, .user-form__field)
   :is(input, select)[aria-invalid="true"]:focus-visible {
   border-color: var(--color-error);
   outline: var(--focus-width) solid var(--color-focus);
