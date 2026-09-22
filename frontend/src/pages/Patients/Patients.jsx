@@ -111,13 +111,22 @@ export default function Patients({
   }
 
   return (
-    <section className={`patients${creating ? " patients--creating" : ""}${editing ? " patients--editing" : ""}`} aria-labelledby="patients-title">
-      {(creating || editing) && (
-        <header className="patients__header">
-          <h2 id="patients-title">{creating ? "Novo paciente" : "Editar paciente"}</h2>
-        </header>
-      )}
+    <section className={`module-shell patients${creating ? " patients--creating" : ""}${editing ? " patients--editing" : ""}`} aria-labelledby="patients-title">
+      <nav className="module-sidebar patients__sidebar" aria-labelledby="patients-nav-title">
+        <h2 id="patients-nav-title">Pacientes</h2>
+        <ul>
+          <li><a href="#/pacientes/consultar" aria-current={!creating ? "page" : undefined}
+            onClick={() => { setEditingPatientId(null); setError(""); }}>Consultar</a></li>
+          <li><a href="#/pacientes/cadastrar" aria-current={creating ? "page" : undefined}
+            onClick={() => { setEditingPatientId(null); setError(""); }}>Cadastrar</a></li>
+        </ul>
+      </nav>
       <div className="patients__content">
+        {(creating || editing) && (
+          <header className="patients__header">
+            <h2 id="patients-title">{creating ? "Novo paciente" : "Editar paciente"}</h2>
+          </header>
+        )}
         {creating ? (
           <PatientCreate onCreated={handleCreated} onCancel={handleCreateCanceled} />
         ) : editing ? (

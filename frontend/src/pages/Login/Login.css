@@ -63,7 +63,6 @@
   background: var(--color-surface);
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-control);
-  text-align: center;
   transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
 }
 
@@ -73,7 +72,6 @@
 
 .login__input::placeholder {
   color: var(--color-text-muted);
-  text-align: center;
 }
 
 .login__input:hover:not(:disabled),

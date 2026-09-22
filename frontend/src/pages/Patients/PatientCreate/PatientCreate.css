@@ -47,6 +47,14 @@
   color: var(--color-text-muted);
 }
 
+#patient-birth-date::-webkit-datetime-edit {
+  padding: 0;
+}
+
+#patient-birth-date::-webkit-calendar-picker-indicator {
+  opacity: 0;
+}
+
 .patient-create__field input:hover:not(:disabled),
 .patient-create__field input:focus-visible,
 .patient-create__field select:hover:not(:disabled),
@@ -67,15 +75,10 @@
   cursor: not-allowed;
 }
 
-.patient-create__field-error,
 .patient-create__error {
   color: var(--color-error);
   margin: 0;
   font-size: var(--font-size-meta);
-}
-
-.patient-create__field-error {
-  overflow-wrap: anywhere;
 }
 
 .patient-create__error {

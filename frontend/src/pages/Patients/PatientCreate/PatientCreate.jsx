@@ -86,7 +86,7 @@ export default function PatientCreate({
             autoComplete="name" value={fullName} disabled={saving || busy} onChange={(event) => setFullName(event.target.value)}
             aria-invalid={Boolean(fieldErrors.full_name)}
             aria-describedby={fieldErrors.full_name ? "patient-full-name-error" : undefined} />
-          {fieldErrors.full_name && <p id="patient-full-name-error" className="patient-create__field-error" role="alert">{fieldErrors.full_name}</p>}
+          {fieldErrors.full_name && <p id="patient-full-name-error" className="form-field__error" role="alert">{fieldErrors.full_name}</p>}
         </div>
         <div className="patient-create__field">
           <label htmlFor="patient-birth-date">Data de nascimento</label>
@@ -94,7 +94,7 @@ export default function PatientCreate({
             value={birthDate} disabled={saving || busy} onChange={(event) => setBirthDate(event.target.value)}
             aria-invalid={Boolean(fieldErrors.birth_date)}
             aria-describedby={fieldErrors.birth_date ? "patient-birth-date-error" : undefined} />
-          {fieldErrors.birth_date && <p id="patient-birth-date-error" className="patient-create__field-error" role="alert">{fieldErrors.birth_date}</p>}
+          {fieldErrors.birth_date && <p id="patient-birth-date-error" className="form-field__error" role="alert">{fieldErrors.birth_date}</p>}
         </div>
         <div className="patient-create__field">
           <label htmlFor="patient-sex">Sexo</label>
@@ -105,28 +105,28 @@ export default function PatientCreate({
             <option value="M">Masculino</option>
             <option value="F">Feminino</option>
           </select>
-          {fieldErrors.sex && <p id="patient-sex-error" className="patient-create__field-error" role="alert">{fieldErrors.sex}</p>}
+          {fieldErrors.sex && <p id="patient-sex-error" className="form-field__error" role="alert">{fieldErrors.sex}</p>}
         </div>
         <div className="patient-create__field">
           <label htmlFor="patient-cpf">CPF</label>
           <input id="patient-cpf" name="cpf" type="text" inputMode="numeric" value={cpf}
             disabled={saving || busy} onChange={(event) => setCpf(event.target.value)} aria-invalid={Boolean(fieldErrors.cpf)}
             aria-describedby={fieldErrors.cpf ? "patient-cpf-error" : undefined} />
-          {fieldErrors.cpf && <p id="patient-cpf-error" className="patient-create__field-error" role="alert">{fieldErrors.cpf}</p>}
+          {fieldErrors.cpf && <p id="patient-cpf-error" className="form-field__error" role="alert">{fieldErrors.cpf}</p>}
         </div>
         <div className="patient-create__field">
           <label htmlFor="patient-phone">Telefone</label>
           <input id="patient-phone" name="phone" type="tel" autoComplete="tel" value={phone}
             disabled={saving || busy} onChange={(event) => setPhone(event.target.value)} aria-invalid={Boolean(fieldErrors.phone)}
             aria-describedby={fieldErrors.phone ? "patient-phone-error" : undefined} />
-          {fieldErrors.phone && <p id="patient-phone-error" className="patient-create__field-error" role="alert">{fieldErrors.phone}</p>}
+          {fieldErrors.phone && <p id="patient-phone-error" className="form-field__error" role="alert">{fieldErrors.phone}</p>}
         </div>
         <div className="patient-create__field">
           <label htmlFor="patient-email">E-mail</label>
           <input id="patient-email" name="email" type="email" autoComplete="email" value={email}
             disabled={saving || busy} onChange={(event) => setEmail(event.target.value)} aria-invalid={Boolean(fieldErrors.email)}
             aria-describedby={fieldErrors.email ? "patient-email-error" : undefined} />
-          {fieldErrors.email && <p id="patient-email-error" className="patient-create__field-error" role="alert">{fieldErrors.email}</p>}
+          {fieldErrors.email && <p id="patient-email-error" className="form-field__error" role="alert">{fieldErrors.email}</p>}
         </div>
       </div>
       {saveError && <p className="patient-create__error" role="alert">{saveError}</p>}

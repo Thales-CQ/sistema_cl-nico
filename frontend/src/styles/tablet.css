@@ -1,0 +1,186 @@
+/* Smartphone (<= 40rem) and desktop (> 64rem) keep their component styles.
+   Keep all intermediate-width overrides inside this single tablet range. */
+@media (40rem < width <= 64rem) {
+  .header__inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .header__account {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
+
+  .header__identity-details {
+    justify-items: start;
+    text-align: start;
+  }
+
+  .header__actions .button {
+    min-height: var(--control-height);
+  }
+
+  .header__actions .theme-toggle {
+    flex-basis: var(--control-height);
+    width: var(--control-height);
+    height: var(--control-height);
+  }
+
+  .menu__toggle {
+    display: none;
+  }
+
+  .menu__list,
+  .menu--open .menu__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    align-items: start;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--page-padding);
+  }
+
+  .menu__link {
+    width: 100%;
+    min-height: var(--control-height);
+    justify-content: center;
+    text-align: center;
+  }
+
+  /* Expanded submenus occupy space in their item instead of covering neighbors. */
+  .menu__submenu {
+    position: static;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin: var(--space-1) 0 0;
+  }
+
+  .main-layout__content {
+    padding: var(--space-4) var(--page-padding);
+  }
+
+  .module-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .module-sidebar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .module-sidebar ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+  }
+
+  .module-sidebar a {
+    justify-content: center;
+  }
+
+  .patients--creating .patients__header,
+  .patients--editing .patients__header,
+  .patient-create {
+    max-width: none;
+  }
+
+  .patient-list__table-wrapper {
+    min-width: 0;
+    overflow: visible;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .patient-list__table {
+    display: block;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+  }
+
+  /* Preserve table headings for assistive technology, as in the existing cards. */
+  .patient-list__table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .patient-list__table tbody {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .patient-list__table tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3) var(--space-6);
+    min-width: 0;
+    margin: 0;
+    padding: var(--space-4);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .patient-list__table td {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    justify-items: start;
+    gap: var(--space-1);
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .patient-list__table td::before {
+    content: attr(data-label);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-muted);
+  }
+
+  .patient-list__status {
+    width: max-content;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .patient-list__status::before {
+    flex-shrink: 0;
+  }
+
+  .patient-list__actions {
+    min-width: max-content;
+  }
+
+  .patient-list__actions .button {
+    flex: 0 0 auto;
+    min-width: max-content;
+    min-height: var(--control-height);
+    white-space: nowrap;
+  }
+
+  .patient-create__fields {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  }
+
+  .patient-create__field input,
+  .patient-create__field select {
+    min-height: var(--control-height);
+  }
+
+  .patient-create__actions {
+    align-items: center;
+  }
+
+  .patient-create__actions .button {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}

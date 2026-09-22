@@ -1,6 +1,5 @@
 .patients {
   display: grid;
-  gap: 16px;
   width: 100%;
   min-width: 0;
 }
@@ -17,6 +16,7 @@
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   min-width: 0;
+  margin-bottom: var(--space-4);
 }
 
 .patients__content {

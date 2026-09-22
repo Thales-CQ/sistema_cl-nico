@@ -5,6 +5,7 @@
 .patient-list__results {
   display: grid;
   min-width: 0;
+  container: patient-results / inline-size;
 }
 
 .patient-list__results > * {
@@ -99,10 +100,6 @@
   outline: 0;
 }
 
-.patients__search input {
-  text-align: center;
-}
-
 .patient-list__search input::placeholder {
   color: var(--color-text-muted);
 }
@@ -116,7 +113,6 @@
 .patient-list__table-wrapper {
   width: 100%;
   min-width: 0;
-  overflow-x: auto;
   border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
@@ -124,7 +120,8 @@
 
 .patient-list__table {
   width: 100%;
-  min-width: 42rem;
+  min-width: 0;
+  table-layout: fixed;
   border-collapse: collapse;
   color: var(--color-text);
   background: var(--color-surface);
@@ -144,8 +141,18 @@
   padding: 12px 16px;
   border-bottom: var(--border-width) solid var(--color-border);
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
+  min-width: 0;
   overflow-wrap: anywhere;
+}
+
+/* Keep the four text columns flexible and reserve room for controls. */
+.patient-list__table th:nth-child(5) {
+  width: 7rem;
+}
+
+.patient-list__table th:nth-child(6) {
+  width: 6rem;
 }
 
 .patient-list__table th {
@@ -166,7 +173,7 @@
 }
 
 .patient-list__name {
-  font-weight: 650;
+  font-weight: 400;
 }
 
 .patient-list__table tbody tr:hover {
@@ -176,7 +183,9 @@
 .patient-list__status {
   display: inline-flex;
   align-items: center;
-  width: fit-content;
+  width: max-content;
+  flex-shrink: 0;
+  white-space: nowrap;
   padding: 4px 9px;
   border-radius: 999px;
   font-size: var(--font-size-meta);
@@ -187,6 +196,7 @@
 .patient-list__status::before {
   width: 6px;
   height: 6px;
+  flex-shrink: 0;
   margin-right: 6px;
   border-radius: 50%;
   content: "";
@@ -214,10 +224,15 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  min-width: min(100%, 18rem);
+  min-width: max-content;
+  align-items: center;
 }
 
 .patient-list__actions .button {
+  flex: 0 0 auto;
+  width: max-content;
+  min-width: max-content;
+  white-space: nowrap;
   min-height: 36px;
   padding: 6px 10px;
   font-size: var(--font-size-meta);
@@ -251,9 +266,13 @@
     width: 100%;
   }
 
+}
+
+/* Account for the sidebar: viewport width is not the table's usable width. */
+@container patient-results (max-width: 48rem) {
   .patient-list__table-wrapper {
-    overflow: visible;
     border: 0;
+    box-shadow: none;
   }
 
   .patient-list__table {
@@ -292,7 +311,7 @@
 
   .patient-list__table td {
     display: grid;
-    grid-template-columns: minmax(6rem, 35%) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 35%) minmax(0, 1fr);
     gap: var(--space-2);
     padding: var(--space-2) 0;
     border-bottom: 0;
@@ -304,29 +323,86 @@
   }
 }
 
-@media (min-width: 40rem) and (max-width: 64rem) {
-  .patient-list__table-wrapper {
-    overflow-x: auto;
-  }
-
-  .patient-list__table {
-    min-width: 0;
-    table-layout: fixed;
-  }
-
-  .patient-list__table th,
+/* Stack labels and values when even the card's two columns are too narrow. */
+@container patient-results (max-width: 24rem) {
   .patient-list__table td {
-    padding: 10px clamp(8px, 1.5vw, 12px);
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 40rem) {
-  .patient-list__actions {
-    width: 100%;
-    flex-direction: column;
+  .patient-list__message {
+    padding: var(--space-4);
+    background: var(--color-surface);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-card);
+  }
+
+  .patient-list__table-wrapper {
+    border: 0;
+    box-shadow: none;
+  }
+
+  .patient-list__table tbody {
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  .patient-list__table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3) var(--space-2);
+    min-width: 0;
+    margin: 0;
+    padding: var(--space-4);
+  }
+
+  .patient-list__results .patient-list__table td {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: var(--space-1);
+    min-width: 0;
+    padding: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .patient-list__table td::before {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-meta);
+  }
+
+  .patient-list__table td:nth-child(1),
+  .patient-list__table td:nth-child(4) {
+    grid-column: 1 / -1;
+  }
+
+  .patient-list__table td:nth-child(1)::before,
+  .patient-list__table td:nth-child(5)::before,
+  .patient-list__table td:nth-child(6)::before {
+    display: none;
+  }
+
+  .patient-list__name {
+    font-size: var(--font-size-base);
+    font-weight: 400;
+  }
+
+  .patient-list__results .patient-list__table td:nth-child(5) {
+    display: flex;
+    align-items: center;
+  }
+
+  .patient-list__results .patient-list__table td:nth-child(6) {
+    display: flex;
+    justify-content: flex-end;
   }
 
   .patient-list__actions .button {
-    width: 100%;
+    min-height: var(--control-height);
+  }
+
+  .patient-list__pagination .button {
+    min-height: var(--control-height);
   }
 }

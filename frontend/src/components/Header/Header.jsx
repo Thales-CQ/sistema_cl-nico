@@ -28,16 +28,18 @@ export default function Header({ user, onLogout, operationLoading = false }) {
             </div>
           )}
 
-          <ThemeToggle />
+          <div className="header__actions">
+            <ThemeToggle />
 
-          <Button
-            className="header__logout"
-            variant="secondary"
-            disabled={operationLoading}
-            onClick={onLogout}
-          >
-            Sair
-          </Button>
+            <Button
+              className="header__logout"
+              variant="secondary"
+              disabled={operationLoading}
+              onClick={onLogout}
+            >
+              Sair
+            </Button>
+          </div>
         </div>
 
         <p className="header__status" role="status" aria-live="polite">

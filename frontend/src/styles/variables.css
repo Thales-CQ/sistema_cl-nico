@@ -19,6 +19,8 @@
   --control-height: 2.75rem;
   --auth-max-width: 32rem;
   --content-max-width: 80rem;
+  --module-sidebar-width: 13rem;
+  --module-layout-gap: var(--space-4);
   --page-padding: clamp(1rem, 3vw, 2.25rem);
 
   --border-width: 1px;
