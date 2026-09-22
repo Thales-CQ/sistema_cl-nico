@@ -12,6 +12,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
+    theme = db.Column(db.String(5), nullable=True)
     created_at = db.Column(
         db.DateTime(timezone=True),
         nullable=False,

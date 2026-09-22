@@ -3,6 +3,7 @@ import secrets
 from flask import Blueprint, current_app, jsonify, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from app.extensions import db
 from app.models import User
 from app.security import (
     CSRF_COOKIE,
@@ -15,6 +16,10 @@ from app.security import (
 auth_bp = Blueprint("auth", __name__)
 auth_bp.before_request(protect_csrf)
 _DUMMY_HASH = generate_password_hash(secrets.token_urlsafe(32))
+
+
+def _serialize_user(user):
+    return {"id": user.id, "username": user.username, "theme": user.theme}
 
 
 def _response(payload, status=200):
@@ -74,7 +79,7 @@ def login():
 
     session["user_id"] = user.id
     session.permanent = True
-    return _response({"user": {"id": user.id, "username": user.username}})
+    return _response({"user": _serialize_user(user)})
 
 
 @auth_bp.get("/me")
@@ -83,7 +88,33 @@ def me():
     if user is None:
         # Also bootstraps CSRF for same-origin clients before their first login.
         return _response({"error": "Não autenticado."}, 401)
-    return _response({"user": {"id": user.id, "username": user.username}})
+    return _response({"user": _serialize_user(user)})
+
+
+@auth_bp.get("/me/preferences")
+def get_preferences():
+    user = resolve_active_user()
+    if user is None:
+        return jsonify({"error": "Não autenticado."}), 401
+    # Background synchronization must not rotate the CSRF cookie of other tabs.
+    return jsonify({"user": {"id": user.id, "theme": user.theme}})
+
+
+@auth_bp.patch("/me/preferences")
+def update_preferences():
+    user = resolve_active_user()
+    if user is None:
+        return jsonify({"error": "Não autenticado."}), 401
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or set(data) != {"theme"}:
+        return jsonify({"error": "Envie somente a preferência de tema."}), 400
+    if data["theme"] not in ("light", "dark"):
+        return jsonify({"error": "Tema inválido. Use light ou dark."}), 400
+
+    user.theme = data["theme"]
+    db.session.commit()
+    return jsonify({"user": _serialize_user(user)})
 
 
 @auth_bp.post("/logout")

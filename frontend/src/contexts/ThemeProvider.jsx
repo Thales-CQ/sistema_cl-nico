@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ThemeContext } from "./ThemeContext";
+import { useAuth } from "../hooks/useAuth";
 
 const THEME_STORAGE_KEY = "clinic-ui-theme";
 const THEME_VALUES = Object.freeze({
@@ -33,14 +34,29 @@ function getSystemTheme() {
 }
 
 function getInitialTheme() {
-  return getStoredTheme() ?? getSystemTheme();
+  // The login screen starts light unless a previous session left a choice.
+  return getStoredTheme() ?? THEME_VALUES.LIGHT;
 }
 
 export default function ThemeProvider({ children }) {
-  const [theme, setThemeState] = useState(getInitialTheme);
+  const { user, updateTheme, operationLoading } = useAuth();
+  const [guestTheme, setGuestTheme] = useState(getInitialTheme);
+  const theme = user
+    ? (isTheme(user.theme) ? user.theme : getSystemTheme())
+    : (getStoredTheme() ?? guestTheme);
+
+  useEffect(() => {
+    if (!user || !isTheme(user.theme) || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, user.theme);
+    } catch {
+      // A storage failure must not prevent the account preference from applying.
+    }
+  }, [user]);
 
   const setTheme = useCallback((nextTheme) => {
     if (!isTheme(nextTheme)) return;
+    if (user) return updateTheme(nextTheme);
 
     if (typeof window !== "undefined") {
       try {
@@ -49,8 +65,8 @@ export default function ThemeProvider({ children }) {
         // A storage failure must not prevent the theme from being applied.
       }
     }
-    setThemeState(nextTheme);
-  }, []);
+    setGuestTheme(nextTheme);
+  }, [updateTheme, user]);
 
   const toggleTheme = useCallback(() => {
     setTheme(theme === THEME_VALUES.DARK ? THEME_VALUES.LIGHT : THEME_VALUES.DARK);
@@ -68,7 +84,8 @@ export default function ThemeProvider({ children }) {
     setTheme,
     toggleTheme,
     themeValues: THEME_VALUES,
-  }), [setTheme, theme, toggleTheme]);
+    themeUpdating: operationLoading,
+  }), [operationLoading, setTheme, theme, toggleTheme]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

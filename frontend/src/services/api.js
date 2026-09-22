@@ -3,6 +3,13 @@ let csrfToken = null;
 let sessionCheck = null;
 let authQueue = Promise.resolve();
 
+const unauthorizedListeners = new Set();
+
+export function onUnauthorized(listener) {
+  unauthorizedListeners.add(listener);
+  return () => unauthorizedListeners.delete(listener);
+}
+
 function enqueueAuth(task) {
   const result = authQueue.then(task);
   authQueue = result.catch(() => {});
@@ -26,6 +33,12 @@ async function request(path, options = {}) {
     throw new Error("Resposta inesperada do servidor. Tente novamente.");
   }
   if (typeof data?.csrf_token === "string") csrfToken = data.csrf_token;
+  if (response.status === 403 && data?.error === "Token CSRF inválido.") {
+    csrfToken = null;
+  }
+  if (response.status === 401) {
+    unauthorizedListeners.forEach((listener) => listener());
+  }
   return { response, data };
 }
 
@@ -148,6 +161,33 @@ export async function createPatient(payload) {
       "X-CSRF-Token": csrfToken,
     },
     body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw apiError(response, data);
+  return data;
+}
+
+
+export function updateTheme(theme) {
+  return enqueueAuth(async () => {
+    if (!csrfToken) await readSession();
+    const { response, data } = await request("/auth/me/preferences", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken,
+      },
+      body: JSON.stringify({ theme }),
+    });
+    if (!response.ok) throw apiError(response, data);
+    return data;
+  });
+}
+
+
+export async function getPreferences(signal) {
+  const { response, data } = await request(`/auth/me/preferences?sync=${Date.now()}`, {
+    signal,
+    cache: "no-store",
   });
   if (!response.ok) throw apiError(response, data);
   return data;

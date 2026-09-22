@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AuthContext } from "./AuthContext";
 import * as api from "../services/api";
+import { notifyThemeChange, startThemeSync } from "../services/themeSync";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -14,6 +15,9 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let active = true;
     mounted.current = true;
+    const stopListeningForUnauthorized = api.onUnauthorized(() => {
+      if (active) setUser(null);
+    });
     api.getSession().then(
       (sessionUser) => { if (active) setUser(sessionUser); },
       () => { if (active) setInitialCheckFailed(true); },
@@ -23,8 +27,26 @@ export function AuthProvider({ children }) {
     return () => {
       active = false;
       mounted.current = false;
+      stopListeningForUnauthorized();
     };
   }, []);
+
+  const userId = user?.id;
+
+  useEffect(() => {
+    if (!userId || initialLoading) return;
+    return startThemeSync({
+      userId,
+      onTheme: (theme) => {
+        if (busy.current) return;
+        setUser((current) => (
+          current?.id === userId && current.theme !== theme
+            ? { ...current, theme }
+            : current
+        ));
+      },
+    });
+  }, [userId, initialLoading]);
 
   async function perform(action, kind) {
     if (busy.current || initialLoading) return false;
@@ -41,16 +63,9 @@ export function AuthProvider({ children }) {
     } catch (failure) {
       if (!mounted.current) return false;
       if (failure.isCsrf) {
-        // Synchronize once. The user must explicitly retry the original action.
-        try {
-          const sessionUser = await api.getSession();
-          if (mounted.current) {
-            setUser(sessionUser);
-            setError(sessionUser ? "Tente a operação novamente." : "");
-          }
-        } catch (syncFailure) {
-          if (mounted.current) setError(syncFailure.message);
-        }
+        // An expired or stale CSRF token requires a fresh login.
+        setUser(null);
+        setError("");
       } else if (kind === "session") {
         setInitialCheckFailed(true);
       } else {
@@ -82,6 +97,11 @@ export function AuthProvider({ children }) {
       return null;
     }, "logout"),
     retrySessionCheck: () => perform(api.getSession, "session"),
+    updateTheme: (theme) => perform(async () => {
+      const data = await api.updateTheme(theme);
+      notifyThemeChange(data.user.id);
+      return data.user;
+    }, "theme"),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -53,7 +53,7 @@ def login(client, username="admin", password=PASSWORD):
 def test_login_and_me(client, username):
     response = login(client, username)
     assert response.status_code == 200
-    assert response.json["user"] == {"id": 1, "username": "admin"}
+    assert response.json["user"] == {"id": 1, "username": "admin", "theme": None}
     assert "password_hash" not in response.get_data(as_text=True)
     assert PASSWORD not in response.get_data(as_text=True)
     with client.session_transaction() as session:
@@ -333,7 +333,7 @@ def test_login_logout_with_api_csrf_cookie(client):
         headers={"X-CSRF-Token": token, "Origin": origin},
     )
     assert response.status_code == 200
-    assert response.json["user"] == {"id": 1, "username": "admin"}
+    assert response.json["user"] == {"id": 1, "username": "admin", "theme": None}
     with client.session_transaction() as session:
         assert dict(session) == {"user_id": 1, "_permanent": True}
     token = response.json["csrf_token"]
@@ -354,3 +354,93 @@ def test_login_logout_with_api_csrf_cookie(client):
     assert cookie is not None
     assert cookie.value == response.json["csrf_token"]
     assert client.get_cookie("auth_csrf", path="/api/v1/auth") is None
+
+
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_theme_preference_is_persisted_and_returned_after_login(app, client, theme):
+    assert login(client).status_code == 200
+    response = client.patch(
+        f"{BASE}/me/preferences", json={"theme": theme}, headers=csrf_headers(client),
+    )
+    assert response.status_code == 200
+    assert response.json["user"]["theme"] == theme
+    assert response.headers["Cache-Control"] == "no-store"
+    with app.app_context():
+        assert db.session.get(User, 1).theme == theme
+    other_browser = app.test_client()
+    assert login(other_browser).json["user"]["theme"] == theme
+    assert other_browser.get(f"{BASE}/me").json["user"]["theme"] == theme
+
+
+def test_theme_preference_is_isolated_between_users(app, client):
+    with app.app_context():
+        other = User(username="other")
+        other.set_password(PASSWORD)
+        db.session.add(other)
+        db.session.commit()
+    assert login(client).status_code == 200
+    assert client.patch(f"{BASE}/me/preferences", json={"theme": "dark"},
+                        headers=csrf_headers(client)).status_code == 200
+    assert login(client, "other").json["user"]["theme"] is None
+    assert client.patch(f"{BASE}/me/preferences", json={"theme": "light"},
+                        headers=csrf_headers(client)).status_code == 200
+    assert login(client).json["user"]["theme"] == "dark"
+
+
+@pytest.mark.parametrize("payload", [
+    {}, {"theme": "system"}, {"theme": None}, {"theme": []}, {"theme": {}},
+    {"theme": True}, {"theme": "dark", "user_id": 2}, [], "dark",
+])
+def test_theme_preference_rejects_invalid_payload(client, payload):
+    assert login(client).status_code == 200
+    response = client.patch(f"{BASE}/me/preferences", json=payload,
+                            headers=csrf_headers(client))
+    assert response.status_code == 400
+    assert client.get(f"{BASE}/me").json["user"]["theme"] is None
+
+
+def test_theme_preference_requires_authentication_and_csrf(client):
+    response = client.patch(f"{BASE}/me/preferences", json={"theme": "dark"},
+                            headers=csrf_headers(client))
+    assert response.status_code == 401
+    assert login(client).status_code == 200
+    assert client.patch(f"{BASE}/me/preferences", json={"theme": "dark"}).status_code == 403
+    assert client.get(f"{BASE}/me").json["user"]["theme"] is None
+
+
+def test_preferences_sync_requires_active_session(app, client):
+    assert client.get(f"{BASE}/me/preferences").status_code == 401
+    assert login(client).status_code == 200
+    with app.app_context():
+        db.session.get(User, 1).is_active = False
+        db.session.commit()
+    assert client.get(f"{BASE}/me/preferences").status_code == 401
+
+
+def test_preferences_sync_reads_changes_from_another_browser(app, client):
+    assert login(client).status_code == 200
+    second_browser = app.test_client()
+    assert login(second_browser).status_code == 200
+    csrf_cookie = second_browser.get_cookie("auth_csrf", path="/api/v1").value
+    for theme in ("dark", "light"):
+        response = client.patch(f"{BASE}/me/preferences", json={"theme": theme},
+                                headers=csrf_headers(client))
+        assert response.status_code == 200
+        synced = second_browser.get(f"{BASE}/me/preferences")
+        assert synced.status_code == 200
+        assert synced.json == {"user": {"id": 1, "theme": theme}}
+        assert synced.headers["Cache-Control"] == "no-store"
+        assert "csrf_token" not in synced.json
+        assert second_browser.get_cookie("auth_csrf", path="/api/v1").value == csrf_cookie
+
+
+def test_preferences_sync_does_not_read_another_users_theme(app, client):
+    with app.app_context():
+        other = User(username="other", theme="light")
+        other.set_password(PASSWORD)
+        db.session.add(other)
+        db.session.get(User, 1).theme = "dark"
+        db.session.commit()
+    assert login(client, "other").status_code == 200
+    response = client.get(f"{BASE}/me/preferences?user_id=1")
+    assert response.json == {"user": {"id": 2, "theme": "light"}}

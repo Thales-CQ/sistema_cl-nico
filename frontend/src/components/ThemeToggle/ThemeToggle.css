@@ -59,3 +59,14 @@
   outline: var(--focus-width) solid var(--color-focus);
   outline-offset: var(--focus-offset);
 }
+
+@media (max-width: 40rem) {
+  .theme-toggle__icon--hover {
+    display: none;
+  }
+
+  .theme-toggle:hover .theme-toggle__icon--current {
+    opacity: 1;
+    transform: none;
+  }
+}
