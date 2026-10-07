@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useAuth } from "./hooks/useAuth";
 import { useNavigation } from "./hooks/useNavigation";
-import { navigationForUser } from "./routes/navigation";
+import { canAccessDestination, navigationForUser } from "./routes/navigation";
 import AuthLayout from "./layouts/AuthLayout/AuthLayout";
 import MainLayout from "./layouts/MainLayout/MainLayout";
 import Login from "./pages/Login/Login";
@@ -40,25 +40,27 @@ export default function App() {
       </AuthLayout>
     );
   }
+  const destinationAllowed = canAccessDestination(destination, user);
   return isAuthenticated ? (
     <MainLayout navigationItems={navigationForUser(user)} currentDestination={destination}>
-      {destination.id === "pacientes" ? (
+      {!destinationAllowed ? (
+        <p role="alert">Você não tem permissão para acessar esta página.</p>
+      ) : destination.id === "pacientes" ? (
         <Patients
           view={destination.view}
           onViewChange={(view) => navigate(`pacientes-${view}`)}
         />
       ) : destination.id === "usuarios" ? (
-        user?.is_admin === true ? <Users
+        <Users
           key={destination.routeId}
           view={destination.view}
           onViewChange={(view) => navigate(`usuarios-${view}`)}
-        /> : <p role="alert">Acesso restrito a administradores.</p>
+        />
       ) : destination.id === "perfis" ? (
-        user?.is_admin === true ? <Profiles
+        <Profiles
           view={destination.view}
           onViewChange={(view) => navigate(`perfis-${view}`)}
         />
-          : <p role="alert">Acesso restrito a administradores.</p>
       ) : destination.id === "alterar-senha" ? (
         <ChangePassword />
       ) : (

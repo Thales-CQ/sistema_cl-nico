@@ -244,8 +244,20 @@ export async function getProfiles() {
   return data;
 }
 
+export async function getAssignableProfiles() {
+  const { response, data } = await request("/users/assignable-profiles", { cache: "no-store" });
+  if (!response.ok) throw apiError(response, data);
+  return data;
+}
+
 export async function getProfile(profileId) {
   const { response, data } = await request(`/profiles/${profileId}`, { cache: "no-store" });
+  if (!response.ok) throw apiError(response, data);
+  return data;
+}
+
+export async function getPermissionCatalog() {
+  const { response, data } = await request("/profiles/permissions", { cache: "no-store" });
   if (!response.ok) throw apiError(response, data);
   return data;
 }

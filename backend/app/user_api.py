@@ -7,10 +7,13 @@ from datetime import timezone
 from flask import jsonify, request
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm.attributes import set_committed_value
 
 from app.extensions import db
-from app.models import Profile, User
+from app.models import Permission, Profile, User
 from app.admin_profile import ADMIN_PROFILE_NAME
+from app.models.profile import profile_permissions, user_profiles
+from app.permission_security import effective_permissions, has_permission
 from app.security import resolve_active_user
 from app.user_identity import matching_user_ids
 from app.validators.user import (
@@ -52,7 +55,10 @@ def profile_ids(value):
 
 
 def resolve_profiles(ids, existing=()):
-    profiles = db.session.execute(select(Profile).where(Profile.id.in_(ids))).scalars().all()
+    profiles = db.session.execute(
+        select(Profile).where(Profile.id.in_(ids)).with_for_update()
+        .execution_options(populate_existing=True)
+    ).scalars().all()
     by_id = {profile.id: profile for profile in profiles}
     if len(by_id) != len(ids):
         raise UserAPIError("Perfil não encontrado.", 400)
@@ -60,6 +66,17 @@ def resolve_profiles(ids, existing=()):
     if any(not by_id[profile_id].is_active and profile_id not in existing_ids for profile_id in ids):
         raise UserAPIError("Não é permitido atribuir um perfil inativo.", 400)
     return [by_id[profile_id] for profile_id in ids]
+
+
+def current_user_profiles(user):
+    """Load current links after the user-write lock and align the ORM collection."""
+    profiles = db.session.execute(
+        select(Profile).join(user_profiles, Profile.id == user_profiles.c.profile_id)
+        .where(user_profiles.c.user_id == user.id).with_for_update()
+        .execution_options(populate_existing=True)
+    ).scalars().all()
+    set_committed_value(user, "profiles", profiles)
+    return profiles
 
 
 def admin_from_profiles(profiles):
@@ -125,6 +142,79 @@ def require_user(admin=False):
     return user
 
 
+def require_actor_permissions(actor, *codes):
+    if not set(codes) <= effective_permissions(actor, for_update=True):
+        raise UserAPIError("Permissão insuficiente.", 403)
+
+
+def is_structural_admin(actor, *, for_update=True):
+    if not actor.is_active or not actor.is_admin:
+        return False
+    query = (
+        select(Profile.id)
+        .join(user_profiles, Profile.id == user_profiles.c.profile_id)
+        .where(
+            user_profiles.c.user_id == actor.id,
+            Profile.name == ADMIN_PROFILE_NAME,
+            Profile.is_active.is_(True),
+        )
+    )
+    if for_update:
+        query = query.with_for_update()
+    return db.session.execute(query).first() is not None
+
+
+def profile_is_assignable(profile, actor_codes, structural_admin, *, for_update=False):
+    """Whether this profile can be chosen for a new association."""
+    if not profile.is_active or (profile.name == ADMIN_PROFILE_NAME and not structural_admin):
+        return False
+    query = (
+        select(Permission.code)
+        .join(profile_permissions, Permission.id == profile_permissions.c.permission_id)
+        .where(profile_permissions.c.profile_id == profile.id)
+    )
+    if for_update:
+        query = query.with_for_update()
+    profile_codes = set(db.session.execute(query).scalars())
+    return profile_codes <= actor_codes
+
+
+def assignable_profiles(actor):
+    """List current options for a new profile association."""
+    actor_codes = effective_permissions(actor)
+    structural_admin = is_structural_admin(actor, for_update=False)
+    profiles = db.session.execute(
+        select(Profile).where(Profile.is_active.is_(True)).order_by(Profile.id)
+    ).scalars()
+    return [profile for profile in profiles if profile_is_assignable(
+        profile, actor_codes, structural_admin
+    )]
+
+
+def authorize_profile_assignment(actor, profiles, existing=()):
+    """Authorize new links and changes to structural Administrator membership."""
+    existing_ids = {profile.id for profile in existing}
+    requested_ids = {profile.id for profile in profiles}
+    admin = Profile.query.filter_by(name=ADMIN_PROFILE_NAME).one_or_none()
+    admin_id = admin.id if admin is not None else None
+    admin_link_changed = admin_id is not None and (
+        (admin_id in existing_ids) != (admin_id in requested_ids)
+    )
+    structural_admin = is_structural_admin(actor) if admin_link_changed else False
+    if admin_link_changed and not structural_admin:
+        raise UserAPIError("Permissão insuficiente.", 403)
+
+    new_profiles = [profile for profile in profiles if profile.id not in existing_ids]
+    if not new_profiles:
+        return
+    actor_codes = effective_permissions(actor, for_update=True)
+    for profile in new_profiles:
+        if not profile.is_active:
+            raise UserAPIError("Não é permitido atribuir um perfil inativo.", 400)
+        if not profile_is_assignable(profile, actor_codes, structural_admin, for_update=True):
+            raise UserAPIError("Permissão insuficiente.", 403)
+
+
 def lock_user_writes():
     """Serialize writes on the first user (users cannot be deleted by this API).
 
@@ -143,7 +233,7 @@ def lock_user_writes():
     db.session.expire_all()
 
 
-def user_write(admin=False):
+def user_write(admin=False, permission=None):
     def decorate(function):
         @wraps(function)
         def wrapped(*args, **kwargs):
@@ -153,6 +243,8 @@ def user_write(admin=False):
                 # Locking reads see current values even under MySQL REPEATABLE READ.
                 db.session.refresh(actor, with_for_update=True)
                 actor = require_user(admin)
+                if permission and not has_permission(actor, permission, for_update=True):
+                    raise UserAPIError("Permissão insuficiente.", 403)
                 result = function(actor, *args, **kwargs)
                 db.session.commit()
                 return result

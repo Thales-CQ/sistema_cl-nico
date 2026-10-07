@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from app import create_app
 from app.config import Config
 from app.extensions import db
-from app.models import Profile, User
+from app.models import Permission, Profile, User
 
 
 @pytest.fixture
@@ -110,6 +110,10 @@ def test_admin_association_tracks_existing_admin_writes(app):
         db.session.commit()
         from app.admin_profile import sync_admin_profile
         sync_admin_profile(actor)
+        actor.profiles[0].permissions.extend(
+            Permission(code=code, description=code)
+            for code in ("users.view", "users.create", "users.update", "users.assign_profiles")
+        )
         db.session.commit()
         client = app.test_client()
         with client.session_transaction() as session:

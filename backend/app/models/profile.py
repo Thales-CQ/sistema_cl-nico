@@ -9,6 +9,12 @@ user_profiles = db.Table(
     db.Column("profile_id", db.Integer, db.ForeignKey("profiles.id"), primary_key=True),
 )
 
+profile_permissions = db.Table(
+    "profile_permissions",
+    db.Column("profile_id", db.Integer, db.ForeignKey("profiles.id"), primary_key=True),
+    db.Column("permission_id", db.Integer, db.ForeignKey("permissions.id"), primary_key=True),
+)
+
 
 class Profile(db.Model):
     __tablename__ = "profiles"
@@ -22,3 +28,6 @@ class Profile(db.Model):
     )
 
     users = db.relationship("User", secondary=user_profiles, back_populates="profiles")
+    permissions = db.relationship(
+        "Permission", secondary=profile_permissions, back_populates="profiles"
+    )

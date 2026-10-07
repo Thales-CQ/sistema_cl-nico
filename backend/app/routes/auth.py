@@ -5,6 +5,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
 from app.models import User
+from app.permission_security import effective_permissions
 from app.user_api import UserAPIError, user_write, validated_payload
 from app.security import (
     CSRF_COOKIE,
@@ -21,12 +22,19 @@ auth_bp.before_request(protect_csrf)
 _DUMMY_HASH = generate_password_hash(secrets.token_urlsafe(32))
 
 
-def _serialize_user(user):
-    return {
+def _serialize_user(user, *, include_permissions=False):
+    payload = {
         "id": user.id, "username": user.username, "full_name": user.full_name,
         "theme": user.theme,
         "is_admin": user.is_admin,
+        "profiles": [
+            {"id": profile.id, "name": profile.name, "is_active": profile.is_active}
+            for profile in sorted(user.profiles, key=lambda profile: profile.id)
+        ],
     }
+    if include_permissions:
+        payload["permissions"] = sorted(effective_permissions(user))
+    return payload
 
 
 def _response(payload, status=200):
@@ -100,7 +108,7 @@ def me():
     if user is None:
         # Also bootstraps CSRF for same-origin clients before their first login.
         return _response({"error": "Não autenticado."}, 401)
-    return _response({"user": _serialize_user(user)})
+    return _response({"user": _serialize_user(user, include_permissions=True)})
 
 
 @auth_bp.get("/me/preferences")

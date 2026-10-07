@@ -3,7 +3,7 @@ import pytest
 from app import create_app
 from app.config import Config
 from app.extensions import db
-from app.models import User
+from app.models import Permission, Profile, User
 
 
 PASSWORD = "senha-de-teste-005"
@@ -54,14 +54,17 @@ def test_login_and_me(client, username):
     response = login(client, username)
     assert response.status_code == 200
     assert response.json["user"] == {"id": 1, "username": "ADMIN", "full_name": None,
-                                    "theme": None, "is_admin": False}
+                                    "theme": None, "is_admin": False, "profiles": []}
     assert "password_hash" not in response.get_data(as_text=True)
     assert PASSWORD not in response.get_data(as_text=True)
     with client.session_transaction() as session:
         assert dict(session) == {"user_id": 1, "_permanent": True}
     response = client.get(f"{BASE}/me")
     assert response.status_code == 200
-    assert set(response.json["user"]) == {"id", "username", "full_name", "theme", "is_admin"}
+    assert set(response.json["user"]) == {
+        "id", "username", "full_name", "theme", "is_admin", "profiles", "permissions",
+    }
+    assert response.json["user"]["permissions"] == []
     assert "password_hash" not in response.get_data(as_text=True)
     assert response.headers["Cache-Control"] == "no-store"
 
@@ -346,7 +349,7 @@ def test_login_logout_with_api_csrf_cookie(client):
     )
     assert response.status_code == 200
     assert response.json["user"] == {"id": 1, "username": "ADMIN", "full_name": None,
-                                    "theme": None, "is_admin": False}
+                                    "theme": None, "is_admin": False, "profiles": []}
     with client.session_transaction() as session:
         assert dict(session) == {"user_id": 1, "_permanent": True}
     token = response.json["csrf_token"]
@@ -468,11 +471,88 @@ def test_session_exposes_admin_flag_and_preserves_theme(app, client, is_admin):
         db.session.commit()
     for response in [login(client), client.get(f"{BASE}/me")]:
         assert response.status_code == 200
-        assert response.json["user"] == {
+        expected = {
             "id": 1, "username": "ADMIN", "full_name": None,
-            "theme": "dark", "is_admin": is_admin,
+            "theme": "dark", "is_admin": is_admin, "profiles": [],
         }
+        if response.request.path.endswith("/me"):
+            expected["permissions"] = []
+        assert response.json["user"] == expected
         assert "password" not in response.get_data(as_text=True)
     response = client.patch(f"{BASE}/me/preferences", json={"theme": "light"},
                             headers=csrf_headers(client))
     assert response.json["user"]["is_admin"] is is_admin
+
+
+def test_me_exposes_current_effective_permissions_in_sorted_union(app, client):
+    with app.app_context():
+        patients_view = Permission(code="patients.view", description="Consultar pacientes")
+        profiles_view = Permission(code="profiles.view", description="Consultar perfis")
+        users_view = Permission(code="users.view", description="Consultar usuários")
+        first = Profile(name="Primeiro", permissions=[users_view, patients_view])
+        second = Profile(name="Segundo", permissions=[patients_view, profiles_view])
+        inactive = Profile(name="Inativo", is_active=False, permissions=[
+            Permission(code="users.create", description="Cadastrar usuários")
+        ])
+        user = db.session.get(User, 1)
+        user.profiles.extend([first, second, inactive])
+        db.session.commit()
+        first_id, second_id = first.id, second.id
+
+    assert login(client).status_code == 200
+    response = client.get(f"{BASE}/me")
+    assert response.json["user"]["permissions"] == [
+        "patients.view", "profiles.view", "users.view",
+    ]
+
+    with app.app_context():
+        first = db.session.get(Profile, first_id)
+        second = db.session.get(Profile, second_id)
+        first.permissions.clear()
+        second.is_active = False
+        db.session.commit()
+    assert client.get(f"{BASE}/me").json["user"]["permissions"] == []
+
+
+def test_me_reflects_permission_changes_without_new_login(app, client):
+    with app.app_context():
+        permission = Permission(code="patients.view", description="Consultar pacientes")
+        profile = Profile(name="Equipe", permissions=[permission])
+        user = db.session.get(User, 1)
+        user.profiles.append(profile)
+        db.session.commit()
+    assert login(client).status_code == 200
+    assert client.get(f"{BASE}/me").json["user"]["permissions"] == ["patients.view"]
+    with app.app_context():
+        profile = Profile.query.filter_by(name="Equipe").one()
+        profile.permissions.clear()
+        db.session.commit()
+    assert client.get(f"{BASE}/me").json["user"]["permissions"] == []
+
+
+def test_me_admin_flag_alone_grants_no_permissions(app, client):
+    with app.app_context():
+        db.session.get(User, 1).is_admin = True
+        db.session.commit()
+    assert login(client).status_code == 200
+    assert client.get(f"{BASE}/me").json["user"]["permissions"] == []
+
+
+def test_me_structural_administrator_returns_all_catalog_permissions(app, client):
+    codes = [
+        "patients.view", "patients.create", "patients.update", "patients.change_status",
+        "users.view", "users.create", "users.update", "users.change_status",
+        "users.reset_password", "users.assign_profiles",
+        "profiles.view", "profiles.create", "profiles.update",
+    ]
+    with app.app_context():
+        profile = Profile(name="Administrador", permissions=[
+            Permission(code=code, description=code) for code in codes
+        ])
+        user = db.session.get(User, 1)
+        user.is_admin = True
+        user.profiles.append(profile)
+        db.session.commit()
+    assert login(client).status_code == 200
+    assert client.get(f"{BASE}/me").json["user"]["permissions"] == sorted(codes)
+    assert client.get(f"{BASE}/me").json["user"]["profiles"][-1]["name"] == "Administrador"

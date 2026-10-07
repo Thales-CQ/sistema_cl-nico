@@ -1,3 +1,4 @@
 from .user import User
 from .profile import Profile
+from .permission import Permission
 from .patient import Patient

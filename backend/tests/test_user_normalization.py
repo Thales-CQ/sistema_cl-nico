@@ -10,7 +10,7 @@ from werkzeug.security import generate_password_hash
 from app import create_app
 from app.config import Config
 from app.extensions import db
-from app.models import Profile, User
+from app.models import Permission, Profile, User
 from app.validators.user import normalize_username, validate_full_name, normalize_email
 
 PASSWORD = " MinhaSenha123! "
@@ -27,8 +27,14 @@ def app(monkeypatch, tmp_path):
     app.config["TESTING"] = True
     with app.app_context():
         db.create_all()
-        db.session.add(User(username="operator", is_admin=True, password_hash=HASH))
+        operator = User(username="operator", is_admin=True, password_hash=HASH)
+        db.session.add(operator)
         db.session.add(Profile(name="Equipe"))
+        db.session.flush()
+        operator.profiles.append(Profile(name="Operador", permissions=[
+            Permission(code=code, description=code)
+            for code in ("users.view", "users.create", "users.update", "users.assign_profiles")
+        ]))
         db.session.commit()
     yield app
     with app.app_context():

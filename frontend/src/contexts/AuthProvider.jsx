@@ -1,7 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AuthContext } from "./AuthContext";
+import { hasPermission, loginWithSession, normalizeUser } from "./authState";
 import * as api from "../services/api";
 import { notifyThemeChange, startThemeSync } from "../services/themeSync";
+
+function sameSessionUser(current, next) {
+  const keys = new Set([...Object.keys(current ?? {}), ...Object.keys(next ?? {})]);
+  return [...keys].every((key) => {
+    if (Array.isArray(current?.[key]) || Array.isArray(next?.[key])) {
+      return JSON.stringify(current?.[key] ?? []) === JSON.stringify(next?.[key] ?? []);
+    }
+    return current?.[key] === next?.[key];
+  });
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -11,6 +22,7 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState("");
   const mounted = useRef(false);
   const busy = useRef(false);
+  const sessionSyncInFlight = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -19,7 +31,7 @@ export function AuthProvider({ children }) {
       if (active) setUser(null);
     });
     api.getSession().then(
-      (sessionUser) => { if (active) setUser(sessionUser); },
+      (sessionUser) => { if (active) setUser(normalizeUser(sessionUser)); },
       () => { if (active) setInitialCheckFailed(true); },
     ).finally(() => {
       if (active) setInitialLoading(false);
@@ -32,6 +44,41 @@ export function AuthProvider({ children }) {
   }, []);
 
   const userId = user?.id;
+
+  const refreshSession = useCallback(async () => {
+    if (!mounted.current || !userId || busy.current || sessionSyncInFlight.current) return;
+    sessionSyncInFlight.current = true;
+    try {
+      const sessionUser = await api.getSession();
+      if (!mounted.current) return;
+      setUser((current) => {
+        if (!current) return current;
+        if (!sessionUser || sessionUser.id !== current.id) return null;
+        const next = normalizeUser(sessionUser, current);
+        return sameSessionUser(current, next) ? current : next;
+      });
+    } catch {
+      // Temporary network failures must not log out the current user.
+    } finally {
+      sessionSyncInFlight.current = false;
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || initialLoading) return undefined;
+
+    const syncWhenVisible = () => {
+      if (document.visibilityState === "visible") refreshSession();
+    };
+    const intervalId = window.setInterval(refreshSession, 10000);
+    window.addEventListener("focus", refreshSession);
+    document.addEventListener("visibilitychange", syncWhenVisible);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshSession);
+      document.removeEventListener("visibilitychange", syncWhenVisible);
+    };
+  }, [userId, initialLoading, refreshSession]);
 
   useEffect(() => {
     if (!userId || initialLoading) return;
@@ -56,7 +103,7 @@ export function AuthProvider({ children }) {
     try {
       const nextUser = await action();
       if (mounted.current) {
-        setUser(nextUser);
+        setUser(normalizeUser(nextUser, user));
         if (kind === "session") setInitialCheckFailed(false);
       }
       return true;
@@ -88,34 +135,26 @@ export function AuthProvider({ children }) {
       return {
         ...current, username: updatedUser.username,
         full_name: updatedUser.full_name, is_admin: updatedUser.is_admin,
+        permissions: Array.isArray(updatedUser.permissions)
+          ? normalizeUser(updatedUser).permissions
+          : current.permissions ?? [],
       };
     });
-  }, []);
-
-  const refreshSession = useCallback(async () => {
-    try {
-      const sessionUser = await api.getSession();
-      if (mounted.current) setUser((current) => (
-        current && (!sessionUser || current.id === sessionUser.id) ? sessionUser : current
-      ));
-    } catch {
-      // A failed administrative screen remains blocked on transient errors.
-    }
   }, []);
 
   const value = {
     reconcileUser,
     refreshSession,
     user,
+    hasPermission: (code) => hasPermission(user, code),
     isAuthenticated: Boolean(user),
     initialLoading,
     initialCheckFailed,
     operationLoading,
     error,
-    login: (username, password) => perform(async () => {
-      const data = await api.login(username, password);
-      return data.user;
-    }, "login"),
+    login: (username, password) => perform(
+      () => loginWithSession(username, password, api), "login",
+    ),
     logout: () => perform(async () => {
       await api.logout();
       return null;

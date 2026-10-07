@@ -8,6 +8,9 @@ export const navigationItems = [
       {
         id: "pacientes", routeId: "pacientes-consultar", pageId: "pacientes",
         label: "Pacientes", href: "#/pacientes/consultar", view: "consultar",
+        permission: "patients.view", createPermission: "patients.create",
+        createRouteId: "pacientes-cadastrar", createHref: "#/pacientes/cadastrar",
+        createView: "cadastrar",
       },
       { id: "agendamentos", label: "Agendamento", disabled: true },
       { id: "atendimentos", label: "Atendimento", disabled: true },
@@ -21,10 +24,17 @@ export const navigationItems = [
       {
         id: "usuarios", routeId: "usuarios-consultar", pageId: "usuarios",
         label: "Usuários", href: "#/usuarios/consultar", view: "consultar",
+        permission: "users.view", createPermission: "users.create",
+        createPermissions: ["users.create", "users.assign_profiles"],
+        createRouteId: "usuarios-cadastrar", createHref: "#/usuarios/cadastrar",
+        createView: "cadastrar",
       },
       {
         id: "perfis", routeId: "perfis-consultar", pageId: "perfis",
         label: "Perfis", href: "#/perfis/consultar", view: "consultar",
+        permission: "profiles.view", createPermission: "profiles.create",
+        createRouteId: "perfis-cadastrar", createHref: "#/perfis/cadastrar",
+        createView: "cadastrar",
       },
     ],
   },
@@ -46,9 +56,9 @@ const destinations = flattenNavigation(navigationItems);
 // Internal module navigation remains hash-addressable without exposing these
 // actions as expandable items in the main menu.
 destinations.push(
-  { id: "pacientes", moduleId: "atendimento", routeId: "pacientes-cadastrar", label: "Cadastrar paciente", href: "#/pacientes/cadastrar", view: "cadastrar" },
-  { id: "usuarios", moduleId: "configuracoes", routeId: "usuarios-cadastrar", label: "Cadastrar usuário", href: "#/usuarios/cadastrar", view: "cadastrar" },
-  { id: "perfis", moduleId: "configuracoes", routeId: "perfis-cadastrar", label: "Cadastrar perfil", href: "#/perfis/cadastrar", view: "cadastrar" },
+  { id: "pacientes", moduleId: "atendimento", routeId: "pacientes-cadastrar", label: "Cadastrar paciente", href: "#/pacientes/cadastrar", view: "cadastrar", permission: "patients.create" },
+  { id: "usuarios", moduleId: "configuracoes", routeId: "usuarios-cadastrar", label: "Cadastrar usuário", href: "#/usuarios/cadastrar", view: "cadastrar", permission: "users.create", requiredPermissions: ["users.create", "users.assign_profiles"] },
+  { id: "perfis", moduleId: "configuracoes", routeId: "perfis-cadastrar", label: "Cadastrar perfil", href: "#/perfis/cadastrar", view: "cadastrar", permission: "profiles.create" },
 );
 
 destinations.push({
@@ -68,5 +78,48 @@ export function findDestination(destinationId) {
 
 
 export function navigationForUser(user) {
-  return navigationItems.filter((item) => item.id !== "configuracoes" || user?.is_admin === true);
+  const permissions = Array.isArray(user?.permissions) ? user.permissions : [];
+  const can = (code) => permissions.includes(code);
+
+  function filterItems(items) {
+    return items.flatMap((item) => {
+      if (item.disabled) return [item];
+      if (item.children?.length) {
+        const children = filterItems(item.children);
+        const hasAuthorizedChild = children.some((child) => !child.disabled);
+        return hasAuthorizedChild ? [{ ...item, children }] : [];
+      }
+      if (!item.permission || can(item.permission)) return [item];
+      const createPermissions = item.createPermissions ?? (item.createPermission ? [item.createPermission] : []);
+      if (createPermissions.length > 0 && createPermissions.every(can)) {
+        return [{
+          ...item,
+          routeId: item.createRouteId,
+          href: item.createHref,
+          view: item.createView,
+        }];
+      }
+      return [];
+    });
+  }
+
+  return filterItems(navigationItems);
+}
+
+export function permissionForDestination(destination) {
+  if (!destination) return null;
+  if (destination.view === "cadastrar") {
+    return `${destination.id === "pacientes" ? "patients" : destination.id === "usuarios" ? "users" : "profiles"}.create`;
+  }
+  if (["pacientes", "usuarios", "perfis"].includes(destination.id)) {
+    return `${destination.id === "pacientes" ? "patients" : destination.id === "usuarios" ? "users" : "profiles"}.view`;
+  }
+  return null;
+}
+
+export function canAccessDestination(destination, user) {
+  const permission = permissionForDestination(destination);
+  const required = destination?.requiredPermissions ?? (permission === null ? [] : [permission]);
+  const permissions = Array.isArray(user?.permissions) ? user.permissions : [];
+  return required.every((code) => permissions.includes(code));
 }

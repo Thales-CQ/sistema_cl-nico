@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app import create_app
 from app.config import Config
 from app.extensions import db
-from app.models import Patient, User
+from app.models import Patient, Permission, Profile, User
 
 
 PASSWORD = "senha-de-teste-005"
@@ -29,7 +29,12 @@ def app(monkeypatch):
     app.config["TESTING"] = True
     with app.app_context():
         db.create_all()
-        user = User(username="admin")
+        admin_profile = Profile(name="Administrador", permissions=[
+            Permission(code=code, description=code) for code in (
+                "patients.view", "patients.create", "patients.update", "patients.change_status",
+            )
+        ])
+        user = User(username="admin", is_admin=True, profiles=[admin_profile])
         user.set_password(PASSWORD)
         db.session.add(user)
         db.session.commit()
@@ -1490,3 +1495,84 @@ def test_integrity_error_hides_patient_parameters(app):
             assert "SQL parameters hidden due to hide_parameters=True" in message
         finally:
             db.session.rollback()
+
+
+def _grant_patient_permissions(app, *codes):
+    with app.app_context():
+        profile = Profile.query.filter_by(name="Administrador").one()
+        profile.permissions = Permission.query.filter(Permission.code.in_(codes)).all()
+        db.session.commit()
+
+
+@pytest.mark.parametrize("path", [PATIENTS_URL, BIRTHDAYS_URL, PATIENT_DETAILS_URL.format(patient_id=1)])
+def test_view_permission_controls_all_patient_gets(app, authenticated_client, path):
+    _grant_patient_permissions(app)
+    assert authenticated_client.get(path).status_code == 403
+    _grant_patient_permissions(app, "patients.view")
+    assert authenticated_client.get(path).status_code in {200, 404}
+
+
+def test_create_permission_controls_post_and_csrf(app, authenticated_client):
+    payload = {"full_name": "Maria Silva", "birth_date": "1990-05-20", "sex": "F"}
+    token = authenticated_client.get(f"{AUTH_BASE}/me").json["csrf_token"]
+    _grant_patient_permissions(app)
+    assert authenticated_client.post(PATIENTS_URL, json=payload,
+                                     headers={"X-CSRF-Token": token}).status_code == 403
+    _grant_patient_permissions(app, "patients.create")
+    assert authenticated_client.post(PATIENTS_URL, json=payload).status_code == 403
+    assert authenticated_client.post(PATIENTS_URL, json=payload,
+                                     headers={"X-CSRF-Token": token}).status_code == 201
+
+
+def test_update_and_change_status_permissions_are_independent(app, authenticated_client):
+    with app.app_context():
+        patient = Patient(full_name="Maria Silva", birth_date=date(1990, 5, 20), sex="F")
+        db.session.add(patient)
+        db.session.commit()
+        patient_id = patient.id
+    normal = PATIENT_UPDATE_URL.format(patient_id=patient_id)
+    status = PATIENT_STATUS_URL.format(patient_id=patient_id)
+    token = authenticated_client.get(f"{AUTH_BASE}/me").json["csrf_token"]
+    headers = {"X-CSRF-Token": token}
+
+    _grant_patient_permissions(app)
+    assert authenticated_client.patch(normal, json={"full_name": "Ana Silva"},
+                                      headers=headers).status_code == 403
+    assert authenticated_client.patch(status, json={"is_active": False},
+                                      headers=headers).status_code == 403
+
+    _grant_patient_permissions(app, "patients.update")
+    assert authenticated_client.patch(normal, json={"full_name": "Ana Silva"},
+                                      headers=headers).status_code == 200
+    assert authenticated_client.patch(normal, json={"full_name": "Bia Silva", "is_active": False},
+                                      headers=headers).status_code == 403
+    with app.app_context():
+        patient = db.session.get(Patient, patient_id)
+        assert patient.full_name == "ANA SILVA" and patient.is_active is True
+    assert authenticated_client.patch(status, json={"is_active": False},
+                                      headers=headers).status_code == 403
+
+    _grant_patient_permissions(app, "patients.change_status")
+    assert authenticated_client.patch(normal, json={"full_name": "Bia Silva"},
+                                      headers=headers).status_code == 403
+    assert authenticated_client.patch(status, json={"is_active": False},
+                                      headers=headers).status_code == 200
+
+    _grant_patient_permissions(app, "patients.update", "patients.change_status")
+    assert authenticated_client.patch(normal, json={"full_name": "Bia Silva", "is_active": True},
+                                      headers=headers).status_code == 200
+    with app.app_context():
+        patient = db.session.get(Patient, patient_id)
+        assert patient.full_name == "BIA SILVA" and patient.is_active is True
+
+
+def test_inactive_profile_and_user_lose_patient_access(app, authenticated_client):
+    assert authenticated_client.get(PATIENTS_URL).status_code == 200
+    with app.app_context():
+        Profile.query.filter_by(name="Administrador").one().is_active = False
+        db.session.commit()
+    assert authenticated_client.get(PATIENTS_URL).status_code == 403
+    with app.app_context():
+        User.query.filter_by(username="ADMIN").one().is_active = False
+        db.session.commit()
+    assert authenticated_client.get(PATIENTS_URL).status_code == 401

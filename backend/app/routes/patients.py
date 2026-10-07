@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from app.extensions import db
 from app.models import Patient
 from app.patient_search import normalize_patient_search, normalized_patient_column
+from app.permission_security import has_permission, require_permission
 from app.security import protect_csrf, resolve_active_user
 from app.validators.patient import PATIENT_VALIDATORS, validate_patient
 
@@ -55,6 +56,7 @@ _MAX_PAGINATION_INTEGER = (1 << 63) - 1
 
 
 @patients_bp.get("/birthdays/today")
+@require_permission("patients.view")
 def list_today_birthdays():
     today = date.today()
     patients = Patient.query.filter(
@@ -68,6 +70,7 @@ def list_today_birthdays():
 
 
 @patients_bp.get("/<int:patient_id>")
+@require_permission("patients.view")
 def get_patient(patient_id):
     patient = db.session.get(Patient, patient_id)
     if patient is None:
@@ -76,6 +79,7 @@ def get_patient(patient_id):
 
 
 @patients_bp.patch("/<int:patient_id>/status")
+@require_permission("patients.change_status")
 def update_patient_status(patient_id):
     patient = db.session.get(Patient, patient_id)
     if patient is None:
@@ -101,6 +105,7 @@ def update_patient_status(patient_id):
 
 
 @patients_bp.patch("/<int:patient_id>")
+@require_permission("patients.update")
 def update_patient(patient_id):
     patient = db.session.get(Patient, patient_id)
     if patient is None:
@@ -112,6 +117,8 @@ def update_patient(patient_id):
     data = request.get_json(silent=True)
     if not isinstance(data, dict):
         return jsonify({"error": "Envie um objeto JSON válido."}), 400
+    if "is_active" in data and not has_permission(resolve_active_user(), "patients.change_status"):
+        return jsonify({"error": "Permissão insuficiente."}), 403
 
     allowed_fields = set(PATIENT_VALIDATORS) | {"is_active"}
     unknown_fields = sorted(set(data) - allowed_fields)
@@ -159,6 +166,7 @@ def update_patient(patient_id):
 
 
 @patients_bp.get("")
+@require_permission("patients.view")
 def list_patients():
     try:
         page = int(request.args.get("page", "1"))
@@ -199,6 +207,7 @@ def list_patients():
 
 
 @patients_bp.post("")
+@require_permission("patients.create")
 def create_patient():
     if not request.is_json:
         return jsonify({"error": "Envie um objeto JSON válido."}), 400

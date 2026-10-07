@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 from app import create_app
 from app.config import Config
 from app.extensions import db
-from app.models import Profile, User
+from app.models import Permission, Profile, User
 
 
 BASE = "/api/v1/users"
@@ -40,6 +40,16 @@ def app(monkeypatch, tmp_path):
             user.set_password(PASSWORD)
             db.session.add(user)
         db.session.add(Profile(name="Equipe padrão"))
+        admin_profile = Profile(name="Administrador", permissions=[
+            Permission(code=code, description=code) for code in (
+                "users.view", "users.create", "users.update", "users.change_status",
+                "users.reset_password", "users.assign_profiles",
+            )
+        ])
+        db.session.add(admin_profile)
+        db.session.flush()
+        first_admin = db.session.get(User, 1)
+        first_admin.profiles.append(admin_profile)
         db.session.commit()
     yield app
     with app.app_context():
@@ -390,16 +400,26 @@ def test_inactivated_session_rejected_with_existing_csrf(app, client):
         assert "user_id" not in session
 
 
-@pytest.mark.parametrize("field,status", [("is_admin", 403), ("is_active", 401)])
-def test_rechecks_actor_after_waiting_for_lock(app, client, monkeypatch, field, status):
+@pytest.mark.parametrize("change,status", [("permission", 403), ("is_active", 401)])
+def test_rechecks_actor_after_waiting_for_lock(app, client, monkeypatch, change, status):
     from app import user_api
-    from sqlalchemy import update
+    from app.models.profile import profile_permissions
+    from sqlalchemy import delete, update
 
     original_lock = user_api.lock_user_writes
+    with app.app_context():
+        permission_id = Permission.query.filter_by(code="users.update").one().id
+        admin_id = Profile.query.filter_by(name="Administrador").one().id
 
     def changed_while_waiting():
         with db.engine.begin() as connection:
-            connection.execute(update(User).where(User.id == 1).values(**{field: False}))
+            if change == "permission":
+                connection.execute(delete(profile_permissions).where(
+                    profile_permissions.c.profile_id == admin_id,
+                    profile_permissions.c.permission_id == permission_id,
+                ))
+            else:
+                connection.execute(update(User).where(User.id == 1).values(is_active=False))
         original_lock()
 
     monkeypatch.setattr(user_api, "lock_user_writes", changed_while_waiting)
@@ -410,11 +430,11 @@ def test_rechecks_actor_after_waiting_for_lock(app, client, monkeypatch, field, 
 
 def make_profiles(app):
     with app.app_context():
-        admin = Profile(name="Administrador")
+        admin = Profile.query.filter_by(name="Administrador").one()
         first = Profile(name="Equipe")
         second = Profile(name="Clínica")
         inactive = Profile(name="Inativo", is_active=False)
-        db.session.add_all((admin, first, second, inactive))
+        db.session.add_all((first, second, inactive))
         db.session.commit()
         return admin.id, first.id, second.id, inactive.id
 
@@ -440,6 +460,52 @@ def test_create_with_one_and_multiple_profiles(app, client):
     assert client.get(f"{BASE}/{user['id']}").json["user"]["profiles"] == user["profiles"]
     assert any(item["id"] == user["id"] and item["profiles"] == user["profiles"]
                for item in client.get(BASE).json["users"])
+
+
+def test_only_structural_admin_can_assign_or_remove_administrator(app, client):
+    admin_id, first_id, _, _ = make_profiles(app)
+    with app.app_context():
+        delegated = Profile(name="Delegado", permissions=Permission.query.filter(
+            Permission.code.in_(("users.create", "users.update", "users.assign_profiles"))
+        ).all())
+        db.session.add(delegated)
+        db.session.flush()
+        actor = db.session.get(User, 2)
+        actor.profiles.append(delegated)
+        db.session.commit()
+
+    non_admin = as_user(app, 2)
+    assert admin_id in [profile["id"] for profile in client.get(BASE + "/assignable-profiles").json["profiles"]]
+    assert admin_id not in [profile["id"] for profile in non_admin.get(BASE + "/assignable-profiles").json["profiles"]]
+    assert write(non_admin, BASE, {
+        **PAYLOAD, "username": "delegated", "email": "delegated@example.com",
+        "profile_ids": [admin_id],
+    }, "post").status_code == 403
+    assert write(non_admin, BASE + "/1", {"profile_ids": [first_id]}).status_code == 403
+
+    created = write(client, BASE, {
+        **PAYLOAD, "username": "managed", "email": "managed@example.com",
+        "profile_ids": [admin_id],
+    }, "post")
+    assert created.status_code == 201
+
+
+def test_assign_profiles_can_update_profiles_without_users_update(app):
+    _, first_id, _, _ = make_profiles(app)
+    with app.app_context():
+        delegated = Profile(name="Somente perfis", permissions=[
+            Permission.query.filter_by(code="users.assign_profiles").one()
+        ])
+        db.session.add(delegated)
+        db.session.flush()
+        actor = db.session.get(User, 2)
+        actor.profiles.append(delegated)
+        db.session.commit()
+    non_admin = as_user(app, 2)
+    response = write(non_admin, BASE + "/2", {"profile_ids": [first_id]})
+    assert response.status_code == 200
+    assert response.json["user"]["profiles"][0]["id"] == first_id
+    assert write(non_admin, BASE + "/2", {"full_name": "Não permitido"}).status_code == 403
 
 
 def test_empty_profile_ids_rejected_and_legacy_patch_without_ids_preserves_links(client):
@@ -516,7 +582,8 @@ def test_last_admin_cannot_lose_profile_in_same_update(app, client):
     admin_id, first_id, _, _ = make_profiles(app)
     with app.app_context():
         actor = db.session.get(User, 1)
-        actor.profiles.append(db.session.get(Profile, admin_id))
+        if db.session.get(Profile, admin_id) not in actor.profiles:
+            actor.profiles.append(db.session.get(Profile, admin_id))
         db.session.commit()
     blocked = write(client, BASE + "/1", {
         "full_name": "Changed User", "profile_ids": [first_id],
@@ -548,3 +615,299 @@ def test_profile_assignment_rolls_back_with_user_write(app, client):
         db.session.expire_all()
         user = db.session.get(User, 2)
         assert user.full_name is None and user.profiles == []
+
+
+def _set_admin_permissions(app, *codes):
+    with app.app_context():
+        profile = Profile.query.filter_by(name="Administrador").one()
+        profile.permissions = Permission.query.filter(Permission.code.in_(codes)).all()
+        db.session.commit()
+
+
+def test_view_permission_grants_both_gets_without_admin_flag(app):
+    with app.app_context():
+        common_user = db.session.get(User, 2)
+        common_user.profiles.append(Profile.query.filter_by(name="Administrador").one())
+        db.session.commit()
+    common = as_user(app, 2)
+    assert common.get(BASE).status_code == 200
+    assert common.get(BASE + "/1").status_code == 200
+    _set_admin_permissions(app, "users.change_status", "users.reset_password")
+    assert common.get(BASE).status_code == 403
+    assert common.get(BASE + "/1").status_code == 403
+    client = as_user(app, 1)
+    assert client.get(BASE).status_code == 403  # is_admin alone is not a grant
+
+
+def test_status_permission_and_last_admin_protection(app):
+    with app.app_context():
+        common_user = db.session.get(User, 2)
+        common_user.profiles.append(Profile.query.filter_by(name="Administrador").one())
+        db.session.commit()
+    common = as_user(app, 2)
+    _set_admin_permissions(app, "users.change_status")
+    assert write(common, BASE + "/1/status", {"is_active": False}).status_code == 409
+    assert write(common, BASE + "/2/status", {"is_active": False}).status_code == 200
+    with app.app_context():
+        assert db.session.get(User, 1).is_active is True
+        db.session.get(User, 2).is_active = True
+        db.session.commit()
+    _set_admin_permissions(app)
+    assert write(common, BASE + "/2/status", {"is_active": False}).status_code == 403
+    assert write(as_user(app, 1), BASE + "/2/status", {"is_active": False}).status_code == 403
+
+
+def test_reset_permission_grants_nonadmin_and_requires_csrf(app):
+    with app.app_context():
+        common_user = db.session.get(User, 2)
+        common_user.profiles.append(Profile.query.filter_by(name="Administrador").one())
+        db.session.commit()
+    common = as_user(app, 2)
+    _set_admin_permissions(app, "users.reset_password")
+    assert common.patch(BASE + "/1/password", json={"new_password": NEW}).status_code == 403
+    assert write(common, BASE + "/1/password", {"new_password": NEW}).status_code == 200
+    _set_admin_permissions(app)
+    assert write(common, BASE + "/1/password", {"new_password": PASSWORD}).status_code == 403
+    assert write(as_user(app, 1), BASE + "/2/password", {"new_password": NEW}).status_code == 403
+
+
+def test_migrated_permissions_control_general_writes(app):
+    _set_admin_permissions(app)
+    admin = as_user(app, 1)
+    assert admin.get(BASE).status_code == 403
+    assert write(admin, BASE + "/2", {"full_name": "Nome Atualizado"}).status_code == 403
+    assert write(admin, BASE, PAYLOAD, "post").status_code == 403
+    common = as_user(app, 2)
+    assert write(common, BASE + "/1", {"full_name": "Outro Nome"}).status_code == 403
+    assert write(common, BASE, PAYLOAD, "post").status_code == 403
+
+
+def test_inactive_profile_and_user_cannot_use_migrated_routes(app):
+    with app.app_context():
+        Profile.query.filter_by(name="Administrador").one().is_active = False
+        db.session.commit()
+    admin = as_user(app, 1)
+    assert admin.get(BASE).status_code == 403
+    assert write(admin, BASE + "/2/status", {"is_active": False}).status_code == 403
+    with app.app_context():
+        db.session.get(User, 1).is_active = False
+        db.session.commit()
+    assert admin.get(BASE).status_code == 401
+
+
+def test_status_permission_is_rechecked_after_write_lock(app, client, monkeypatch):
+    from sqlalchemy import delete
+
+    from app import user_api
+    from app.models.profile import profile_permissions
+
+    original_lock = user_api.lock_user_writes
+    with app.app_context():
+        profile_id = Profile.query.filter_by(name="Administrador").one().id
+        permission_id = Permission.query.filter_by(code="users.change_status").one().id
+
+    def revoke_while_waiting():
+        with db.engine.begin() as connection:
+            connection.execute(delete(profile_permissions).where(
+                profile_permissions.c.profile_id == profile_id,
+                profile_permissions.c.permission_id == permission_id,
+            ))
+        original_lock()
+
+    monkeypatch.setattr(user_api, "lock_user_writes", revoke_while_waiting)
+    assert write(client, BASE + "/2/status", {"is_active": False}).status_code == 403
+    with app.app_context():
+        assert db.session.get(User, 2).is_active is True
+
+
+def test_create_requires_assign_profiles_and_explicit_status_permission(app, client):
+    _set_admin_permissions(app, "users.create")
+    assert write(client, BASE, PAYLOAD, "post").status_code == 403
+    _set_admin_permissions(app, "users.create", "users.assign_profiles")
+    assert write(client, BASE, {**PAYLOAD, "is_active": False}, "post").status_code == 403
+    with app.app_context():
+        assert User.query.count() == 3
+    assert write(client, BASE, PAYLOAD, "post").status_code == 201
+    _set_admin_permissions(app, "users.create", "users.assign_profiles", "users.change_status")
+    second = {**PAYLOAD, "username": "another", "email": "another@example.com",
+              "is_active": False}
+    assert write(client, BASE, second, "post").status_code == 201
+    with app.app_context():
+        assert User.query.filter_by(username="ANOTHER").one().is_active is False
+    _set_admin_permissions(app)
+    assert write(client, BASE, {**PAYLOAD, "username": "third",
+                                "email": "third@example.com"}, "post").status_code == 403
+
+
+def test_general_update_requires_additional_permissions_without_partial_write(app, client):
+    _set_admin_permissions(app, "users.update")
+    assert write(client, BASE + "/2", {"full_name": "Novo Nome"}).status_code == 200
+    for payload in (
+        {"full_name": "Sem Permissão", "is_active": False},
+        {"full_name": "Sem Permissão", "profile_ids": [1]},
+        {"full_name": "Sem Permissão", "is_admin": True},
+    ):
+        assert write(client, BASE + "/2", payload).status_code == 403
+        with app.app_context():
+            user = db.session.get(User, 2)
+            assert user.full_name == "NOVO NOME"
+            assert user.is_active is True and user.is_admin is False and user.profiles == []
+
+    _set_admin_permissions(app, "users.update", "users.change_status")
+    assert write(client, BASE + "/2", {"is_active": False}).status_code == 200
+    _set_admin_permissions(app, "users.update", "users.assign_profiles")
+    assert write(client, BASE + "/2", {"profile_ids": [1]}).status_code == 200
+
+
+def test_change_status_does_not_grant_general_user_update(app, client):
+    _set_admin_permissions(app, "users.change_status")
+    response = write(client, BASE + "/2", {
+        "full_name": "Não deve alterar", "email": "nao@example.com",
+    })
+    assert response.status_code == 403
+    with app.app_context():
+        user = db.session.get(User, 2)
+        assert user.full_name is None and user.email == "common@example.com"
+    assert write(client, BASE + "/2/status", {"is_active": False}).status_code == 200
+    with app.app_context():
+        assert db.session.get(User, 2).is_active is False
+
+
+def test_profile_grants_must_be_subset_of_actor_grants(app, client):
+    with app.app_context():
+        powerful = Profile(name="Poderoso", permissions=[
+            Permission.query.filter_by(code="users.reset_password").one()
+        ])
+        inactive = Profile(name="Desativado", is_active=False)
+        db.session.add_all([powerful, inactive])
+        db.session.commit()
+        powerful_id, inactive_id = powerful.id, inactive.id
+    _set_admin_permissions(app, "users.create", "users.update", "users.assign_profiles")
+    assert write(client, BASE, {**PAYLOAD, "profile_ids": [powerful_id]}, "post").status_code == 403
+    assert write(client, BASE + "/2", {"full_name": "Sem Permissão",
+                                      "profile_ids": [powerful_id]}).status_code == 403
+    with app.app_context():
+        assert User.query.count() == 3
+        user = db.session.get(User, 2)
+        assert user.full_name is None and user.profiles == []
+    assert write(client, BASE + "/2", {"profile_ids": [inactive_id]}).status_code == 400
+    assert write(client, BASE, PAYLOAD, "post").status_code == 201  # Empty grant set is a subset.
+    _set_admin_permissions(app, "users.create", "users.update", "users.assign_profiles",
+                           "users.reset_password")
+    assert write(client, BASE + "/2", {"profile_ids": [powerful_id]}).status_code == 200
+
+
+def test_structural_admin_membership_requires_structural_actor(app, client):
+    with app.app_context():
+        operator = Profile(name="Operador", permissions=Permission.query.all())
+        db.session.add(operator)
+        common_user = db.session.get(User, 2)
+        common_user.profiles.append(operator)
+        admin_id = Profile.query.filter_by(name="Administrador").one().id
+        db.session.commit()
+        operator_id = operator.id
+    common = as_user(app, 2)
+    assert write(common, BASE, {**PAYLOAD, "profile_ids": [admin_id]}, "post").status_code == 403
+    assert write(common, BASE + "/3", {"full_name": "Sem Permissão",
+                                      "profile_ids": [admin_id]}).status_code == 403
+    assert write(common, BASE + "/1", {"profile_ids": [1]}).status_code == 403
+    assert write(common, BASE + "/1", {"is_admin": False}).status_code == 403
+    assert write(common, BASE + "/2", {"is_admin": True}).status_code == 403
+    assert write(common, BASE + "/3", {"is_admin": True}).status_code == 403
+    with app.app_context():
+        assert User.query.count() == 3
+        assert db.session.get(User, 3).full_name is None
+        assert db.session.get(User, 1).is_admin is True
+        assert db.session.get(User, 2).is_admin is False
+    assert write(client, BASE + "/1", {"profile_ids": [1]}).status_code == 409
+    assert write(client, BASE + "/2", {"profile_ids": [operator_id, admin_id]}).status_code == 200
+    assert write(client, BASE + "/1", {"profile_ids": [1]}).status_code == 200
+
+
+def test_nonadmin_with_permissions_can_create_and_edit_regular_users(app):
+    with app.app_context():
+        codes = ("users.create", "users.update", "users.assign_profiles")
+        operator = Profile(name="Operador", permissions=Permission.query.filter(
+            Permission.code.in_(codes)
+        ).all())
+        db.session.add(operator)
+        common_user = db.session.get(User, 2)
+        common_user.profiles.append(operator)
+        db.session.commit()
+    common = as_user(app, 2)
+    created = write(common, BASE, PAYLOAD, "post")
+    assert created.status_code == 201
+    assert created.json["user"]["is_admin"] is False
+    assert write(common, BASE + "/3", {"full_name": "Nome Corrigido"}).status_code == 200
+
+
+ASSIGNABLE = BASE + "/assignable-profiles"
+
+
+def test_assignable_profiles_requires_active_user_and_permission(app):
+    assert app.test_client().get(ASSIGNABLE).status_code == 401
+    assert as_user(app, 3).get(ASSIGNABLE).status_code == 401
+    assert as_user(app, 2).get(ASSIGNABLE).status_code == 403
+    _set_admin_permissions(app)
+    assert as_user(app, 1).get(ASSIGNABLE).status_code == 403
+
+
+def test_assignable_profiles_reuses_assignment_eligibility_and_updates_live(app):
+    with app.app_context():
+        extra = Permission(code="patients.view", description="Consultar pacientes")
+        operator = Profile(name="Operador", permissions=Permission.query.all())
+        elevated = Profile(name="Elevado", permissions=[extra])
+        inactive = Profile(name="Inativo", is_active=False)
+        db.session.add_all([operator, elevated, inactive])
+        common_user = db.session.get(User, 2)
+        common_user.profiles.append(operator)
+        db.session.commit()
+        operator_id, elevated_id, inactive_id, extra_id = (
+            operator.id, elevated.id, inactive.id, extra.id
+        )
+        admin_id = Profile.query.filter_by(name="Administrador").one().id
+    common = as_user(app, 2)
+    response = common.get(ASSIGNABLE)
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    ids = {profile["id"] for profile in response.json["profiles"]}
+    assert {1, operator_id} <= ids
+    assert admin_id not in ids and elevated_id not in ids and inactive_id not in ids
+    assert all(set(profile) == {"id", "name", "is_active"} and profile["is_active"]
+               for profile in response.json["profiles"])
+    with app.app_context():
+        operator = db.session.get(Profile, operator_id)
+        operator.permissions.append(db.session.get(Permission, extra_id))
+        db.session.commit()
+    ids = {profile["id"] for profile in common.get(ASSIGNABLE).json["profiles"]}
+    assert elevated_id in ids and admin_id not in ids
+    assert write(common, BASE + "/2", {"profile_ids": [operator_id, elevated_id]}).status_code == 200
+    with app.app_context():
+        db.session.get(Profile, elevated_id).is_active = False
+        db.session.commit()
+    ids = {profile["id"] for profile in common.get(ASSIGNABLE).json["profiles"]}
+    assert elevated_id not in ids
+    with app.app_context():
+        operator = db.session.get(Profile, operator_id)
+        operator.permissions.remove(Permission.query.filter_by(code="users.assign_profiles").one())
+        db.session.commit()
+    assert common.get(ASSIGNABLE).status_code == 403
+
+
+def test_assignable_profiles_lists_admin_only_for_structural_admin(app, client):
+    with app.app_context():
+        admin_id = Profile.query.filter_by(name="Administrador").one().id
+    response = client.get(ASSIGNABLE)
+    assert response.status_code == 200
+    assert admin_id in {profile["id"] for profile in response.json["profiles"]}
+    with app.app_context():
+        actor = db.session.get(User, 1)
+        actor.profiles.remove(db.session.get(Profile, admin_id))
+        operator = Profile(name="Operador", permissions=[
+            Permission.query.filter_by(code="users.assign_profiles").one()
+        ])
+        actor.profiles.append(operator)
+        db.session.commit()
+    response = client.get(ASSIGNABLE)
+    assert response.status_code == 200
+    assert admin_id not in {profile["id"] for profile in response.json["profiles"]}
