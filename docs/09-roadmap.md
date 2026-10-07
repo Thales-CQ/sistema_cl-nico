@@ -69,10 +69,10 @@
 
 ## Versão 0.0.10
 
-- Consolidação do cadastro de pacientes
-- Definição e documentação da regra de pacientes inativos
-- Revisão das validações, estados e regressões do cadastro
-- Testes completos do fluxo de pacientes existente
+- [x] Consolidação do cadastro de pacientes
+- [x] Definição e documentação da regra de pacientes inativos
+- [x] Revisão das validações, estados e regressões do cadastro
+- [x] Testes completos do fluxo de pacientes existente
 
 ### Regra de pacientes inativos
 
@@ -83,10 +83,10 @@
 
 ## Versão 0.0.11
 
-- Gestão de usuários
-- Criação, edição, ativação e inativação de usuários
-- Alteração e redefinição de senha
-- Encerramento seguro de sessões de usuários inativos
+- [x] Gestão de usuários
+- [x] Criação, edição, ativação e inativação de usuários
+- [x] Alteração e redefinição de senha
+- [x] Encerramento seguro de sessões de usuários inativos
 
 ### Dependências
 
@@ -95,17 +95,17 @@
 
 ### Critérios de conclusão
 
-- Usuários autorizados administram contas.
-- Usuários inativos não conseguem autenticar.
-- Senhas nunca são expostas.
-- Operações possuem validação backend e testes.
+- [x] Usuários autorizados administram contas.
+- [x] Usuários inativos não conseguem autenticar.
+- [x] Senhas nunca são expostas.
+- [x] Operações possuem validação backend e testes.
 
 ## Versão 0.0.12
 
-- Perfis e permissões
-- Autorização por módulo e ação
-- Proteção backend para operações administrativas e clínicas
-- Menu e navegação derivados das permissões
+- [x] Perfis e permissões
+- [x] Autorização por módulo e ação
+- [x] Proteção backend para operações administrativas e clínicas
+- [x] Menu e navegação derivados das permissões
 
 ### Dependências
 
@@ -114,9 +114,9 @@
 
 ### Critérios de conclusão
 
-- Toda operação sensível é autorizada no backend.
-- Respostas 401 e 403 são coerentes.
-- Testes cobrem acesso permitido e negado por perfil.
+- [x] Toda operação sensível é autorizada no backend.
+- [x] Respostas 401 e 403 são coerentes.
+- [x] Testes cobrem acesso permitido e negado por perfil.
 
 ## Versão 0.0.13
 
