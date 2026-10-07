@@ -345,6 +345,56 @@ test("401 notifies auth and 403 preserves backend errors and CSRF recovery", asy
   } finally { stop(); globalThis.fetch = original; }
 });
 
+test("status update failures from the user list are reported accessibly", async () => {
+  const vite = await createServer({
+    configFile: false,
+    server: { middlewareMode: true, hmr: false },
+    cacheDir: "/tmp/clinica-vite-tests",
+  });
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  const failures = [];
+  globalThis.fetch = async (path, options = {}) => {
+    calls.push({ path, options });
+    if (path.endsWith("/auth/me")) {
+      return { ok: true, status: 200, json: async () => ({ csrf_token: "status-csrf", user: { id: 1 } }) };
+    }
+    return { ok: false, status: 409, json: async () => ({ error: "Não é permitido remover o último administrador ativo." }) };
+  };
+  try {
+    const [{ updateStatusFromList }, { default: UserList }] = await Promise.all([
+      vite.ssrLoadModule("/src/features/users/hooks/useUserList.js"),
+      vite.ssrLoadModule("/src/features/users/components/UserList.jsx"),
+    ]);
+    const user = {
+      id: 7, full_name: "Ana Silva", username: "ana", email: "ana@example.com",
+      is_active: true, profiles: [],
+    };
+    const statusError = await updateStatusFromList(user, {
+      onStatusUpdated() {},
+      onFailure(failure) { failures.push(failure); },
+    });
+    assert.equal(calls.at(-1).path, "/api/v1/users/7/status");
+    assert.equal(statusError, "Não é permitido remover o último administrador ativo.");
+    assert.equal(failures.length, 1);
+    assert.equal(failures[0].status, 409);
+
+    const html = renderToStaticMarkup(createElement(UserList, {
+      canChangeStatus: true,
+      list: {
+        appliedSearch: "", changeStatus() {}, error: "", loading: false, onSearchChange() {},
+        search: "", searchInput: { current: null }, statusError, updating: false,
+        updatingStatusId: null, visibleUsers: [user],
+      },
+    }));
+    assert.match(html, /role="alert"/);
+    assert.match(html, /Não é permitido remover o último administrador ativo\./);
+  } finally {
+    globalThis.fetch = originalFetch;
+    await vite.close();
+  }
+});
+
 test("user edit status is sent with the single profile update contract", async () => {
   const api = await import("../src/services/api.js?user-edit-status");
   const original = globalThis.fetch;

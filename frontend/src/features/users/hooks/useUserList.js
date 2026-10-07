@@ -2,10 +2,22 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getUsers, updateUserStatus } from "../../../services/api";
 import { normalizeUserSearch, selectUsers } from "../state/userListQuery";
 
+export async function updateStatusFromList(user, { onStatusUpdated, onFailure }) {
+  try {
+    const data = await updateUserStatus(user.id, !user.is_active);
+    onStatusUpdated(data.user);
+    return "";
+  } catch (failure) {
+    onFailure?.(failure);
+    return failure.message;
+  }
+}
+
 export default function useUserList({ onFailure, initialUsers = [], initialLoading = true }) {
   const [users, setUsers] = useState(initialUsers);
   const [loading, setLoading] = useState(initialLoading);
   const [error, setError] = useState("");
+  const [statusError, setStatusError] = useState("");
   const [updatingStatusId, setUpdatingStatusId] = useState(null);
   const [search, setSearch] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -19,11 +31,15 @@ export default function useUserList({ onFailure, initialUsers = [], initialLoadi
     const action = user.is_active ? "inativar" : "reativar";
     if (!window.confirm(`Deseja ${action} o usuário ${user.full_name || user.username}?`)) return;
     setUpdatingStatusId(user.id);
+    setStatusError("");
     try {
-      const data = await updateUserStatus(user.id, !user.is_active);
-      setUsers((current) => current.map((item) => item.id === user.id ? data.user : item));
-    } catch (failure) {
-      onFailure?.(failure);
+      const statusError = await updateStatusFromList(user, {
+        onStatusUpdated(updatedUser) {
+          setUsers((current) => current.map((item) => item.id === user.id ? updatedUser : item));
+        },
+        onFailure,
+      });
+      setStatusError(statusError);
     } finally {
       setUpdatingStatusId(null);
     }
@@ -51,5 +67,6 @@ export default function useUserList({ onFailure, initialUsers = [], initialLoadi
   return {
     appliedSearch, changeStatus, error, loading, onSearchChange: (event) => setSearch(event.target.value),
     search, searchInput, updating, updatingStatusId, visibleUsers,
+    statusError,
   };
 }

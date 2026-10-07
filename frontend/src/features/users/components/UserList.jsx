@@ -8,7 +8,7 @@ export default function UserList({
   list,
 }) {
   const { changeStatus, error, onSearchChange, search, searchInput,
-    updating, updatingStatusId, visibleUsers } = list;
+    statusError, updating, updatingStatusId, visibleUsers } = list;
   const externalStatus = canChangeStatus && !canEdit;
 
   return (
@@ -31,6 +31,7 @@ export default function UserList({
           )}
         </span>
       </div>
+      {statusError && <p className="user-list__message user-list__message--error" role="alert">{statusError}</p>}
       <div className="user-list__results" aria-busy={updating}>
         {updating ? <p className="user-list__message" role="status">Carregando usuários...</p> : error ? (
           <div>
