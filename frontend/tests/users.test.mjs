@@ -72,16 +72,21 @@ test("header and dashboard prefer full name and fall back to legacy username", a
     cacheDir: "/tmp/clinica-vite-tests",
   });
   try {
-    const [{ default: Header }, { default: Dashboard }, { ThemeContext }] = await Promise.all([
+    const [{ default: Header }, { default: Dashboard }, { ThemeContext }, { AuthContext }] = await Promise.all([
       vite.ssrLoadModule("/src/components/Header/Header.jsx"),
       vite.ssrLoadModule("/src/pages/Dashboard/Dashboard.jsx"),
       vite.ssrLoadModule("/src/contexts/ThemeContext.js"),
+      vite.ssrLoadModule("/src/contexts/AuthContext.js"),
     ]);
     const renderHeader = (user) => renderToStaticMarkup(createElement(
       ThemeContext.Provider, { value: { theme: "light", toggleTheme() {}, themeUpdating: false } },
       createElement(Header, { user, onLogout() {} }),
     ));
-    const renderDashboard = (user) => renderToStaticMarkup(createElement(Dashboard, { user }));
+    const renderDashboard = (user) => renderToStaticMarkup(createElement(
+      AuthContext.Provider,
+      { value: { refreshSession() {} } },
+      createElement(Dashboard, { user }),
+    ));
     const named = { full_name: "THALES COSTA QUEIROGA", username: "THALES" };
     for (const html of [renderHeader(named), renderDashboard(named)]) {
       assert.match(html, /THALES COSTA QUEIROGA/);

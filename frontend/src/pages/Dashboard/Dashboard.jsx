@@ -1,58 +1,75 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Button from "../../components/Button/Button";
 import { getPatients, getTodayBirthdays } from "../../services/api";
 import { displayUserName } from "../../services/displayUserName";
+import { useAuth } from "../../hooks/useAuth";
+import { handlePatientAccessDenied, hasPatientsView, runDashboardRequest } from "./dashboardAccess";
 import "./Dashboard.css";
 
 export default function Dashboard({ user }) {
+  const { refreshSession } = useAuth();
+  const canViewPatients = hasPatientsView(user);
   const [patientCount, setPatientCount] = useState({ total: null, loading: true, error: "" });
   const [birthdayList, setBirthdayList] = useState({ patients: [], loading: true, error: "" });
   const [patientCountRetry, setPatientCountRetry] = useState(0);
   const [birthdayListRetry, setBirthdayListRetry] = useState(0);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [permissionSnapshot, setPermissionSnapshot] = useState(canViewPatients);
+  const permissionSyncStarted = useRef(false);
+  const patientDataRestricted = !canViewPatients || permissionDenied;
+
+  if (permissionSnapshot !== canViewPatients) {
+    setPermissionSnapshot(canViewPatients);
+    if (!canViewPatients) {
+      setPatientCount({ total: null, loading: false, error: "" });
+      setBirthdayList({ patients: [], loading: false, error: "" });
+    }
+  }
+
+  const handleRequestFailure = useCallback((failure) => {
+    return handlePatientAccessDenied(failure, {
+      denyAccess: () => setPermissionDenied(true),
+      clearData: () => {
+        setPatientCount({ total: null, loading: false, error: "" });
+        setBirthdayList({ patients: [], loading: false, error: "" });
+      },
+      syncSession: () => {
+        if (permissionSyncStarted.current) return;
+        permissionSyncStarted.current = true;
+        refreshSession();
+      },
+    });
+  }, [refreshSession]);
 
   useEffect(() => {
-    let active = true;
-
-    getPatients()
-      .then((patientsData) => {
-        if (active) setPatientCount({ total: patientsData.total, loading: false, error: "" });
-      })
-      .catch((failure) => {
-        if (active) {
-          setPatientCount({
-            total: null,
-            loading: false,
-            error: failure?.message || "Não foi possível carregar o total de pacientes.",
-          });
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [patientCountRetry]);
+    if (!canViewPatients || permissionDenied) return undefined;
+    return runDashboardRequest({
+      enabled: canViewPatients && !permissionDenied,
+      request: getPatients,
+      onSuccess: (patientsData) => setPatientCount({ total: patientsData.total, loading: false, error: "" }),
+      onFailure: (failure) => setPatientCount({
+        total: null,
+        loading: false,
+        error: failure?.message || "Não foi possível carregar o total de pacientes.",
+      }),
+      onForbidden: handleRequestFailure,
+    });
+  }, [canViewPatients, handleRequestFailure, patientCountRetry, permissionDenied]);
 
   useEffect(() => {
-    let active = true;
-
-    getTodayBirthdays()
-      .then((birthdaysData) => {
-        if (active) setBirthdayList({ patients: birthdaysData.patients, loading: false, error: "" });
-      })
-      .catch((failure) => {
-        if (active) {
-          setBirthdayList({
-            patients: [],
-            loading: false,
-            error: failure?.message || "Não foi possível carregar os aniversariantes de hoje.",
-          });
-        }
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [birthdayListRetry]);
+    if (!canViewPatients || permissionDenied) return undefined;
+    return runDashboardRequest({
+      enabled: canViewPatients && !permissionDenied,
+      request: getTodayBirthdays,
+      onSuccess: (birthdaysData) => setBirthdayList({ patients: birthdaysData.patients, loading: false, error: "" }),
+      onFailure: (failure) => setBirthdayList({
+        patients: [],
+        loading: false,
+        error: failure?.message || "Não foi possível carregar os aniversariantes de hoje.",
+      }),
+      onForbidden: handleRequestFailure,
+    });
+  }, [birthdayListRetry, canViewPatients, handleRequestFailure, permissionDenied]);
 
   function retryPatientCount() {
     setPatientCount({ total: null, loading: true, error: "" });
@@ -79,6 +96,13 @@ export default function Dashboard({ user }) {
         </p>
       </header>
 
+      {patientDataRestricted ? (
+        <div className="dashboard__overview">
+          <section className="dashboard__summary" aria-label="Acesso aos dados de pacientes">
+            <p className="dashboard__empty" role="status">Acesso restrito aos dados de pacientes.</p>
+          </section>
+        </div>
+      ) : (
       <div className="dashboard__overview">
         <section className="dashboard__summary" aria-labelledby="dashboard-total-title">
           <div className="dashboard__card">
@@ -157,6 +181,7 @@ export default function Dashboard({ user }) {
           )}
         </section>
       </div>
+      )}
     </section>
   );
 }
