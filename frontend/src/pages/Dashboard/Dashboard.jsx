@@ -1,36 +1,70 @@
 import { useEffect, useState } from "react";
+import Button from "../../components/Button/Button";
 import { getPatients, getTodayBirthdays } from "../../services/api";
 import { displayUserName } from "../../services/displayUserName";
 import "./Dashboard.css";
 
 export default function Dashboard({ user }) {
-  const [totalPatients, setTotalPatients] = useState(null);
-  const [birthdays, setBirthdays] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [patientCount, setPatientCount] = useState({ total: null, loading: true, error: "" });
+  const [birthdayList, setBirthdayList] = useState({ patients: [], loading: true, error: "" });
+  const [patientCountRetry, setPatientCountRetry] = useState(0);
+  const [birthdayListRetry, setBirthdayListRetry] = useState(0);
 
   useEffect(() => {
     let active = true;
 
-    Promise.all([getPatients(), getTodayBirthdays()]).then(
-      ([patientsData, birthdaysData]) => {
-        if (!active) return;
-        setTotalPatients(patientsData.total);
-        setBirthdays(birthdaysData.patients);
-      },
-      (failure) => {
-        if (active) setError(failure.message);
-      },
-    ).finally(() => {
-      if (active) setLoading(false);
-    });
+    getPatients()
+      .then((patientsData) => {
+        if (active) setPatientCount({ total: patientsData.total, loading: false, error: "" });
+      })
+      .catch((failure) => {
+        if (active) {
+          setPatientCount({
+            total: null,
+            loading: false,
+            error: failure?.message || "Não foi possível carregar o total de pacientes.",
+          });
+        }
+      });
 
     return () => {
       active = false;
     };
-  }, []);
+  }, [patientCountRetry]);
 
-  const isEmpty = totalPatients === 0;
+  useEffect(() => {
+    let active = true;
+
+    getTodayBirthdays()
+      .then((birthdaysData) => {
+        if (active) setBirthdayList({ patients: birthdaysData.patients, loading: false, error: "" });
+      })
+      .catch((failure) => {
+        if (active) {
+          setBirthdayList({
+            patients: [],
+            loading: false,
+            error: failure?.message || "Não foi possível carregar os aniversariantes de hoje.",
+          });
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [birthdayListRetry]);
+
+  function retryPatientCount() {
+    setPatientCount({ total: null, loading: true, error: "" });
+    setPatientCountRetry((attempt) => attempt + 1);
+  }
+
+  function retryBirthdayList() {
+    setBirthdayList({ patients: [], loading: true, error: "" });
+    setBirthdayListRetry((attempt) => attempt + 1);
+  }
+
+  const isEmpty = patientCount.total === 0;
   const displayName = displayUserName(user);
 
   return (
@@ -45,26 +79,29 @@ export default function Dashboard({ user }) {
         </p>
       </header>
 
-      {loading && (
-        <p className="dashboard__message" role="status" aria-live="polite">
-          Carregando resumo...
-        </p>
-      )}
-
-      {error && (
-        <p className="dashboard__message dashboard__message--error" role="alert">
-          {error}
-        </p>
-      )}
-
       <div className="dashboard__overview">
         <section className="dashboard__summary" aria-labelledby="dashboard-total-title">
           <div className="dashboard__card">
             <h2 id="dashboard-total-title">Total de pacientes</h2>
             <p className="dashboard__card-value">
-              {loading || error ? "—" : totalPatients}
+              {patientCount.loading || patientCount.error ? "—" : patientCount.total}
             </p>
-            {!loading && !error && isEmpty && (
+            {patientCount.loading && (
+              <p className="dashboard__empty" role="status" aria-live="polite">
+                Carregando total de pacientes...
+              </p>
+            )}
+            {patientCount.error && (
+              <>
+                <p className="dashboard__message dashboard__message--error" role="alert">
+                  {patientCount.error}
+                </p>
+                <Button variant="secondary" onClick={retryPatientCount}>
+                  Tentar carregar o total novamente
+                </Button>
+              </>
+            )}
+            {!patientCount.loading && !patientCount.error && isEmpty && (
               <p className="dashboard__empty" role="status" aria-live="polite">
                 Ainda não existem pacientes cadastrados.
               </p>
@@ -78,15 +115,32 @@ export default function Dashboard({ user }) {
             <p>Uma lembrança especial para a rotina da clínica.</p>
           </div>
 
-          {!loading && !error && birthdays.length === 0 && (
+          {birthdayList.loading && (
+            <p className="dashboard__empty" role="status" aria-live="polite">
+              Carregando aniversariantes de hoje...
+            </p>
+          )}
+
+          {birthdayList.error && (
+            <>
+              <p className="dashboard__message dashboard__message--error" role="alert">
+                {birthdayList.error}
+              </p>
+              <Button variant="secondary" onClick={retryBirthdayList}>
+                Tentar carregar os aniversariantes novamente
+              </Button>
+            </>
+          )}
+
+          {!birthdayList.loading && !birthdayList.error && birthdayList.patients.length === 0 && (
             <p className="dashboard__empty" role="status" aria-live="polite">
               Não há aniversariantes hoje.
             </p>
           )}
 
-          {!loading && !error && birthdays.length > 0 && (
+          {!birthdayList.loading && !birthdayList.error && birthdayList.patients.length > 0 && (
             <ul className="dashboard__birthday-list">
-              {birthdays.map((patient) => (
+              {birthdayList.patients.map((patient) => (
                 <li key={patient.id}>
                   <article className="dashboard__birthday">
                     <span className="dashboard__avatar" aria-hidden="true">
