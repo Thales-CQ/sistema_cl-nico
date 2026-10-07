@@ -7,7 +7,10 @@ import useProfiles from "./hooks/useProfiles";
 export default function ProfilesFeature({ view = "consultar", onViewChange }) {
   const profiles = useProfiles({ view, onViewChange });
   const content = profiles.creating ? (
-    <ProfileFormFeature onSaved={() => profiles.handleSaved()} onCancel={() => onViewChange("consultar")} />
+    <>
+      {profiles.message && <p className="profiles__success" role="status">{profiles.message}</p>}
+      <ProfileFormFeature onSaved={() => profiles.handleSaved()} onCancel={() => onViewChange("consultar")} />
+    </>
   ) : profiles.editing ? (
     <ProfileEditFeature key={profiles.editingId} profileId={profiles.editingId}
       onSaved={() => profiles.handleSaved(true)} onCancel={profiles.resetEditing}

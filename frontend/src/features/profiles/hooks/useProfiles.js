@@ -8,18 +8,19 @@ export default function useProfiles({ view = "consultar", onViewChange }) {
   const [reload, setReload] = useState(0);
   const creating = view === "cadastrar";
   const editing = !creating && editingId !== null;
+  const canView = hasPermission("profiles.view");
 
   function handleSaved(wasEditing = false) {
     setEditingId(null);
     setReload((current) => current + 1);
     setMessage(wasEditing ? "Perfil atualizado com sucesso." : "Perfil cadastrado com sucesso.");
-    onViewChange("consultar");
+    if (wasEditing || canView) onViewChange("consultar");
   }
 
   return {
     canCreate: hasPermission("profiles.create"),
     canEdit: hasPermission("profiles.update"),
-    canView: hasPermission("profiles.view"),
+    canView,
     creating,
     editing,
     editingId,

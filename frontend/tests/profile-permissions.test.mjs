@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createElement, useRef } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { createServer } from "vite";
 
 import {
   groupedPermissions,
@@ -53,5 +56,46 @@ test("permission catalog API and profile writes preserve permission_ids", async 
     assert.deepEqual(JSON.parse(calls.at(-1).options.body), { permission_ids: [] });
   } finally {
     globalThis.fetch = originalFetch;
+  }
+});
+
+test("profile creation confirms success and only redirects when view permission exists", async () => {
+  const vite = await createServer({
+    configFile: false,
+    server: { middlewareMode: true, hmr: false },
+    cacheDir: "/tmp/clinica-vite-tests",
+  });
+  try {
+    const [{ default: useProfiles }, { AuthContext }] = await Promise.all([
+      vite.ssrLoadModule("/src/features/profiles/hooks/useProfiles.js"),
+      vite.ssrLoadModule("/src/contexts/AuthContext.js"),
+    ]);
+
+    for (const { permissions, expectedNavigation } of [
+      { permissions: ["profiles.create", "profiles.view"], expectedNavigation: ["consultar"] },
+      { permissions: ["profiles.create"], expectedNavigation: [] },
+    ]) {
+      const navigation = [];
+      function SaveHarness() {
+        const handled = useRef(false);
+        const profiles = useProfiles({
+          view: "cadastrar",
+          onViewChange: (view) => navigation.push(view),
+        });
+        if (!handled.current) {
+          handled.current = true;
+          profiles.handleSaved();
+        }
+        return createElement("p", { role: "status" }, profiles.message);
+      }
+      const html = renderToStaticMarkup(createElement(AuthContext.Provider, {
+        value: { hasPermission: (code) => permissions.includes(code) },
+      }, createElement(SaveHarness)));
+
+      assert.deepEqual(navigation, expectedNavigation);
+      assert.match(html, /Perfil cadastrado com sucesso\./);
+    }
+  } finally {
+    await vite.close();
   }
 });
