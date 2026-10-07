@@ -11,7 +11,7 @@
 .permission-selector__group { display: grid; gap: 8px; }
 .permission-selector__group h3 { margin: 0; font-size: var(--font-size-label); }
 .permission-selector__options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 8px 16px; }
-.permission-selector__option { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 6px; border-radius: var(--radius-control); }
+.permission-selector__option { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: var(--control-height); padding: 6px; border-radius: var(--radius-control); }
 .permission-selector__option:hover { background: var(--color-surface-soft); }
 .permission-selector__option input { inline-size: 18px; block-size: 18px; flex: 0 0 auto; accent-color: var(--color-primary); }
 .permission-selector__option span { overflow-wrap: anywhere; }

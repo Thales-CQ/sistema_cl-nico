@@ -232,7 +232,7 @@
 .profile-list__status--inactive { color: var(--color-danger); background: var(--color-error-background); }
 .profile-list__status--inactive::before { background: var(--color-danger); }
 .profile-list__edit.button:not(:disabled) {
-  min-height: 36px;
+  min-height: var(--control-height);
   padding: 6px 10px;
   color: var(--color-action-edit-text);
   background: var(--color-surface);
