@@ -12,6 +12,8 @@ export default function Menu({ items = [], currentDestination }) {
   const submenuPrefix = `${menuPrefix}-submenu`;
   const activeModuleId = currentDestination?.moduleId ?? currentDestination?.id;
   const activeRouteId = currentDestination?.routeId ?? currentDestination?.id;
+  const currentLocationLabel = currentDestination?.label
+    ?? items.find((item) => item.id === activeModuleId)?.label;
 
   useEffect(() => {
     if (openIds.length === 0 && !mobileMenuOpen) return;
@@ -75,24 +77,33 @@ export default function Menu({ items = [], currentDestination }) {
       aria-label="Navegação principal"
       onKeyDown={handleKeyDown}
     >
-      <button
-        ref={mobileMenuButtonRef}
-        type="button"
-        className="menu__toggle"
-        aria-expanded={mobileMenuOpen}
-        aria-controls={mainMenuId}
-        aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
-        onClick={() => {
-          setOpenIds([]);
-          setMobileMenuOpen((current) => !current);
-        }}
-      >
-        <span className="menu__toggle-icon" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </span>
-      </button>
+      <div className="menu__mobile-bar">
+        <button
+          ref={mobileMenuButtonRef}
+          type="button"
+          className="menu__toggle"
+          aria-expanded={mobileMenuOpen}
+          aria-controls={mainMenuId}
+          aria-label={mobileMenuOpen ? "Fechar menu" : "Abrir menu"}
+          onClick={() => {
+            setOpenIds([]);
+            setMobileMenuOpen((current) => !current);
+          }}
+        >
+          <span className="menu__toggle-icon" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+          <span className="menu__toggle-label">Menu</span>
+        </button>
+        {!mobileMenuOpen && currentLocationLabel && (
+          <p className="menu__current-location">
+            <span className="menu__current-location-caption">Você está em</span>
+            <span className="menu__current-location-name">{currentLocationLabel}</span>
+          </p>
+        )}
+      </div>
 
       <ul id={mainMenuId} className="menu__list">
         {renderItems(items, submenuPrefix)}
