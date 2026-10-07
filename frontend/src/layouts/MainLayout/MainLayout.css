@@ -45,3 +45,9 @@
     padding: var(--space-4) var(--space-3);
   }
 }
+
+@media (40rem < width <= 64rem) {
+  .main-layout__content {
+    padding: var(--space-4) var(--page-padding);
+  }
+}

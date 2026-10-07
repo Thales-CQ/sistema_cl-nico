@@ -1,34 +1,48 @@
-/* Semantic color tokens. Visual themes can be changed here without editing components. */
+/* Semantic color tokens. Keep these names stable while existing components use them. */
 :root {
   color-scheme: light;
+
+  /* Page and surface roles */
   --color-background: #f3f8fc;
   --color-surface: #ffffff;
   --color-surface-soft: #eef8f7;
   --color-text: #18343b;
   --color-text-muted: #5d737b;
+
+  /* Brand and primary actions */
   --color-primary: #087f83;
   --color-primary-hover: #056469;
   --color-on-primary: #ffffff;
   --color-action-primary: #4267a9;
   --color-action-primary-hover: #31558f;
   --color-on-action-primary: #ffffff;
+
+  /* Functional actions and statuses */
   --color-action-edit: #e28b2f;
-  --color-on-action-edit: #ffffff;
+  --color-action-edit-text: #995000;
+  --color-on-action-edit: #101112;
   --color-action-status-inactive: #d99a24;
+  --color-action-status-inactive-text: #805400;
   --color-on-action-status-inactive: #101112;
   --color-action-status-active: #2f8a61;
-  --color-on-action-status-active: #ffffff;
+  --color-action-status-active-text: #246b4a;
+  --color-on-action-status-active: #000000;
+
+  /* Borders, focus and feedback */
   --color-border: #d7e5e9;
   --color-border-subtle: #e5edf0;
-  --color-focus: #e28b2f;
+  --color-focus: #056469;
   --color-danger: #c53b4c;
   --color-success: #2f8a61;
+  --color-success-text: #246b4a;
   --color-success-background: #e7f5ec;
   --color-error: var(--color-danger);
   --color-error-background: #fff0f2;
   --color-disabled-background: #e5eaf0;
-  --color-disabled-text: #5d737b;
+  --color-disabled-text: #53666e;
   --color-hover-background: #e1f4f1;
+
+  /* Navigation surfaces */
   --color-nav-background: #ffffff;
   --color-nav-surface: #ffffff;
   --color-nav-hover: #e1f4f1;
@@ -42,34 +56,48 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
+
+  /* Page and surface roles */
   --color-background: #25272a;
   --color-surface: #191a1b;
   --color-surface-soft: #2b2c2d;
   --color-text: #f1f1f1;
   --color-text-muted: #b2b3b4;
+
+  /* Brand and primary actions */
   --color-primary: #f1f1f1;
   --color-primary-hover: #ffffff;
   --color-on-primary: #101112;
   --color-action-primary: #8ebcff;
   --color-action-primary-hover: #b1d1ff;
   --color-on-action-primary: #101112;
+
+  /* Functional actions and statuses */
   --color-action-edit: #f0ad55;
+  --color-action-edit-text: #f0ad55;
   --color-on-action-edit: #101112;
   --color-action-status-inactive: #e2b84a;
+  --color-action-status-inactive-text: #e2b84a;
   --color-on-action-status-inactive: #101112;
   --color-action-status-active: #70d69e;
+  --color-action-status-active-text: #70d69e;
   --color-on-action-status-active: #101112;
+
+  /* Borders, focus and feedback */
   --color-border: #38393a;
   --color-border-subtle: #464b50;
   --color-focus: #ffffff;
   --color-danger: #ff737d;
   --color-success: #70d69e;
+  --color-success-text: #70d69e;
   --color-success-background: #203b2d;
   --color-error: var(--color-danger);
   --color-error-background: #3b2227;
   --color-disabled-background: #3b3e42;
-  --color-disabled-text: #a2a6aa;
+  --color-disabled-text: #b0b4b8;
   --color-hover-background: #343536;
+
+  /* Navigation surfaces */
   --color-nav-background: #1a2023;
   --color-nav-surface: #1a2023;
   --color-nav-hover: #29343a;

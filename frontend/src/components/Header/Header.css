@@ -204,3 +204,30 @@
     min-height: var(--control-height);
   }
 }
+
+@media (40rem < width <= 64rem) {
+  .header__inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .header__account {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
+
+  .header__identity-details {
+    justify-items: start;
+    text-align: start;
+  }
+
+  .header__actions .button {
+    min-height: var(--control-height);
+  }
+
+  .header__actions .theme-toggle {
+    flex-basis: var(--control-height);
+    width: var(--control-height);
+    height: var(--control-height);
+  }
+}

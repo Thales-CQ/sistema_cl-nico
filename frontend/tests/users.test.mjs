@@ -3,10 +3,29 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer } from "vite";
-import { apiBirthDate, displayBirthDate, maskBirthDate, validatePasswordConfirmation, validateUserFullName } from "../src/pages/Users/userForm.js";
-import { findDestination, resolveDestination, navigationForUser } from "../src/routes/navigation.js";
+import { apiBirthDate, displayBirthDate, maskBirthDate, validatePasswordConfirmation, validateUserFullName } from "../src/features/users/state/userForm.js";
+import { canAccessDestination, findDestination, permissionForDestination, resolveDestination, navigationForUser } from "../src/routes/navigation.js";
+import { userEditCapabilities } from "../src/features/users/state/userEditCapabilities.js";
 
 // Run with node --test tests/*.test.mjs; no extra dependencies.
+test("user edit permissions are independent", () => {
+  const cases = [
+    [["users.update"], ["canOpenEdit", "canUpdateData"]],
+    [["users.assign_profiles"], ["canOpenEdit", "canAssignProfiles"]],
+    [["users.reset_password"], ["canOpenEdit", "canResetPassword"]],
+    [["users.assign_profiles", "users.reset_password"], ["canOpenEdit", "canAssignProfiles", "canResetPassword"]],
+    [["users.change_status"], ["canChangeStatus"]],
+    [["users.update", "users.change_status"], ["canOpenEdit", "canUpdateData", "canChangeStatus"]],
+    [[], []],
+  ];
+  for (const [permissions, expected] of cases) {
+    const result = userEditCapabilities((code) => permissions.includes(code));
+    for (const key of ["canOpenEdit", "canUpdateData", "canAssignProfiles", "canResetPassword", "canChangeStatus"]) {
+      assert.equal(result[key], expected.includes(key), `${permissions.join(",")} ${key}`);
+    }
+  }
+});
+
 test("user full name requires two words and accepts particles and extra spaces", () => {
   for (const value of ["JOÃO", " MARIA ", "   ", "JOÃO -"]) {
     assert.throws(() => validateUserFullName(value), /nome e sobrenome/);
@@ -23,7 +42,7 @@ test("new user form has no status control", async () => {
     cacheDir: "/tmp/clinica-vite-tests",
   });
   try {
-    const { default: UserCreate } = await vite.ssrLoadModule("/src/pages/Users/UserCreate/UserCreate.jsx");
+    const { default: UserCreate } = await vite.ssrLoadModule("/src/features/users/UserFormFeature.jsx");
     const html = renderToStaticMarkup(createElement(UserCreate, { onSaved() {}, onCancel() {} }));
     assert.doesNotMatch(html, /name="is_active"|id="user-active"|>Status</);
     assert.doesNotMatch(html, /name="is_admin"/);
@@ -34,7 +53,11 @@ test("new user form has no status control", async () => {
     assert.match(html, /placeholder="Mínimo de 12 caracteres\."/);
     assert.doesNotMatch(html, /id="user-birth-date-hint"|id="user-password-hint"/);
     const { default: PasswordForm } = await vite.ssrLoadModule("/src/components/PasswordForm/PasswordForm.jsx");
-    const passwordHtml = renderToStaticMarkup(createElement(PasswordForm, { onCancel() {} }));
+    const passwordHtml = renderToStaticMarkup(createElement(PasswordForm, {
+      showCurrentPassword: true,
+      onSubmit() {},
+      onCancel() {},
+    }));
     assert.match(passwordHtml, /placeholder="Mínimo de 12 caracteres\."/);
     assert.doesNotMatch(passwordHtml, /<p class="users__hint">Use uma nova senha/);
   } finally {
@@ -109,17 +132,151 @@ test("users and password hashes resolve to real views; patient routes remain int
   assert.equal(resolveDestination("#/fake").id, "inicio");
 });
 
-test("administration navigation requires an explicit boolean admin flag", () => {
-  for (const user of [null, {}, { is_admin: false }, { is_admin: "true" }]) {
+test("navigation exposes only permitted module options", () => {
+  for (const user of [null, {}, { is_admin: true }, { is_admin: "true" }]) {
     assert.ok(!navigationForUser(user).some((item) => item.id === "configuracoes"));
   }
-  const items = navigationForUser({ is_admin: true });
+  const items = navigationForUser({ is_admin: true, permissions: [
+    "users.view", "profiles.create", "patients.view",
+  ] });
   assert.ok(!items.some((item) => item.id === "usuarios"));
   const settings = items.find((item) => item.id === "configuracoes");
   assert.deepEqual(settings.children.map((item) => item.label), ["Usuários", "Perfis"]);
   assert.equal(settings.children[0].href, "#/usuarios/consultar");
   assert.equal(settings.children[0].children, undefined);
+  assert.equal(settings.children[1].href, "#/perfis/cadastrar");
   assert.ok(!settings.disabled);
+});
+
+test("view and create permissions are independent in navigation", () => {
+  assert.equal(navigationForUser({ permissions: ["patients.view"] })
+    .find((item) => item.id === "atendimento").children[0].href, "#/pacientes/consultar");
+  assert.equal(navigationForUser({ permissions: ["patients.create"] })
+    .find((item) => item.id === "atendimento").children[0].href, "#/pacientes/cadastrar");
+  assert.equal(navigationForUser({ permissions: ["users.create", "users.assign_profiles"] })
+    .find((item) => item.id === "configuracoes").children[0].href, "#/usuarios/cadastrar");
+  assert.equal(navigationForUser({ permissions: ["users.create"] })
+    .some((item) => item.id === "configuracoes"), false);
+  assert.equal(navigationForUser({ permissions: ["profiles.view"] })
+    .find((item) => item.id === "configuracoes").children[0].label, "Perfis");
+  assert.equal(navigationForUser({ permissions: ["profiles.view"] })
+    .find((item) => item.id === "configuracoes").children.length, 1);
+});
+
+test("module submenus hide each unauthorized view and create option", async () => {
+  const vite = await createServer({ configFile: false, server: { middlewareMode: true }, cacheDir: "/tmp/clinica-vite-tests" });
+  try {
+    const [{ default: Patients }, { default: Users }, { default: Profiles }, { AuthContext }] = await Promise.all([
+      vite.ssrLoadModule("/src/features/patients/PatientsFeature.jsx"),
+      vite.ssrLoadModule("/src/features/users/UsersFeature.jsx"),
+      vite.ssrLoadModule("/src/features/profiles/ProfilesFeature.jsx"),
+      vite.ssrLoadModule("/src/contexts/AuthContext.js"),
+    ]);
+    const renderWith = (Component, props, permissions) => renderToStaticMarkup(
+      createElement(AuthContext.Provider, {
+        value: { hasPermission: (code) => permissions.includes(code) },
+      }, createElement(Component, props)),
+    );
+    for (const [Component, props, viewCode, createCode] of [
+      [Patients, { view: "cadastrar", onViewChange() {} }, "patients.view", "patients.create"],
+      [Profiles, { view: "cadastrar", onViewChange() {} }, "profiles.view", "profiles.create"],
+    ]) {
+      const createOnly = renderWith(Component, props, [createCode]);
+      assert.match(createOnly, />Cadastrar(?: paciente| usuário| perfil)?</);
+      assert.doesNotMatch(createOnly, />Consultar(?: pacientes| usuários| perfis)?</);
+      const viewOnly = renderWith(Component, { ...props, view: "consultar" }, [viewCode]);
+      assert.match(viewOnly, />Consultar(?: pacientes| usuários| perfis)?</);
+      assert.doesNotMatch(viewOnly, />Cadastrar(?: paciente| usuário| perfil)?</);
+    }
+    const usersCreate = renderWith(Users, { view: "cadastrar", onViewChange() {} }, ["users.create", "users.assign_profiles"]);
+    assert.match(usersCreate, />Cadastrar</);
+    assert.doesNotMatch(usersCreate, />Consultar</);
+    const usersView = renderWith(Users, { view: "consultar", onViewChange() {} }, ["users.view"]);
+    assert.match(usersView, />Consultar</);
+    assert.doesNotMatch(usersView, />Cadastrar</);
+  } finally { await vite.close(); }
+});
+
+test("login uses the authoritative /auth/me user before completing", async () => {
+  const vite = await createServer({ configFile: false, server: { middlewareMode: true }, cacheDir: "/tmp/clinica-vite-tests" });
+  try {
+    const { loginWithSession } = await vite.ssrLoadModule("/src/contexts/authState.js?authoritative-login");
+    const calls = [];
+    const user = {
+      id: 2, username: "EQUIPE", is_admin: false,
+      permissions: ["patients.view", "profiles.view", "users.view"],
+    };
+    const result = await loginWithSession("equipe", "senha", {
+      async login() { calls.push("login"); return { user: { id: 2, is_admin: true } }; },
+      async getSession() { calls.push("me"); return user; },
+    });
+    assert.deepEqual(calls, ["login", "me"]);
+    assert.deepEqual(result, user);
+    assert.deepEqual(result.permissions, ["patients.view", "profiles.view", "users.view"]);
+
+    await assert.rejects(
+      loginWithSession("equipe", "senha", {
+        async login() { return { user: { id: 2, is_admin: true } }; },
+        async getSession() { return null; },
+      }),
+      /Não foi possível validar a sessão após o login/,
+    );
+  } finally { await vite.close(); }
+});
+
+test("query tables omit the actions column when no row action is allowed", async () => {
+  const vite = await createServer({ configFile: false, server: { middlewareMode: true }, cacheDir: "/tmp/clinica-vite-tests" });
+  try {
+    const [{ default: PatientList }, { default: UserList }, { default: ProfileList }] = await Promise.all([
+      vite.ssrLoadModule("/src/features/patients/PatientListFeature.jsx"),
+      vite.ssrLoadModule("/src/features/users/UserListFeature.jsx"),
+      vite.ssrLoadModule("/src/features/profiles/ProfileListFeature.jsx"),
+    ]);
+    const patient = { id: 1, full_name: "Ana Silva", is_active: true };
+    const user = { id: 1, username: "ANA", full_name: "Ana Silva", is_active: true, profiles: [] };
+    const profile = { id: 1, name: "Equipe", is_active: true };
+    const render = (Component, props) => renderToStaticMarkup(createElement(Component, props));
+    for (const [Component, props] of [
+      [PatientList, { patients: [patient], loading: false, total: 1, perPage: 20, canEdit: false }],
+      [UserList, { onFailure() {}, initialUsers: [user], initialLoading: false, canEdit: false }],
+      [ProfileList, { onEdit() {}, initialProfiles: [profile], initialLoading: false, canEdit: false }],
+    ]) {
+      const html = render(Component, props);
+      assert.doesNotMatch(html, />Ações</);
+    }
+    for (const [Component, props] of [
+      [PatientList, { patients: [patient], loading: false, total: 1, perPage: 20, canEdit: true }],
+      [UserList, { onFailure() {}, initialUsers: [user], initialLoading: false, canEdit: true }],
+      [ProfileList, { onEdit() {}, initialProfiles: [profile], initialLoading: false, canEdit: true }],
+    ]) {
+      const html = render(Component, props);
+      assert.match(html, />Ações</);
+      assert.match(html, />Editar</);
+    }
+  } finally { await vite.close(); }
+});
+
+test("direct destinations require module permissions while password remains personal", () => {
+  const patientsList = resolveDestination("#/pacientes/consultar");
+  const patientsCreate = resolveDestination("#/pacientes/cadastrar");
+  const usersList = resolveDestination("#/usuarios/consultar");
+  const usersCreate = resolveDestination("#/usuarios/cadastrar");
+  const profilesList = resolveDestination("#/perfis/consultar");
+  const profilesCreate = resolveDestination("#/perfis/cadastrar");
+  assert.equal(permissionForDestination(patientsList), "patients.view");
+  assert.equal(permissionForDestination(patientsCreate), "patients.create");
+  assert.equal(permissionForDestination(usersList), "users.view");
+  assert.equal(permissionForDestination(usersCreate), "users.create");
+  assert.equal(permissionForDestination(profilesList), "profiles.view");
+  assert.equal(permissionForDestination(profilesCreate), "profiles.create");
+  assert.equal(permissionForDestination(resolveDestination("#/alterar-senha")), null);
+  assert.equal(canAccessDestination(patientsList, { permissions: ["patients.create"] }), false);
+  assert.equal(canAccessDestination(patientsCreate, { permissions: ["patients.create"] }), true);
+  assert.equal(canAccessDestination(usersCreate, { permissions: ["users.create"] }), false);
+  assert.equal(canAccessDestination(usersCreate, { permissions: ["users.assign_profiles"] }), false);
+  assert.equal(canAccessDestination(usersCreate, { permissions: ["users.create", "users.assign_profiles"] }), true);
+  assert.equal(canAccessDestination(usersList, { is_admin: true, permissions: [] }), false);
+  assert.equal(canAccessDestination(resolveDestination("#/alterar-senha"), {}), true);
 });
 
 test("main navigation keeps the requested hierarchy and disabled modules", async () => {

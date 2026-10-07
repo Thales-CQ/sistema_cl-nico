@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer } from "vite";
-import { activeProfiles, hasSelectedProfile } from "../src/pages/Users/userProfileSelection.js";
+import { activeProfiles, hasSelectedProfile } from "../src/features/users/state/userProfileSelection.js";
 
 test("only active API profiles are assignable and a new user needs one", () => {
   const profiles = [
@@ -56,5 +56,23 @@ test("user creation loads profiles and sends profile_ids without is_admin", asyn
     const write = calls.find((call) => call.path === "/api/v1/users");
     assert.deepEqual(JSON.parse(write.options.body), { username: "novo", profile_ids: [1, 3] });
     assert.equal(Object.hasOwn(JSON.parse(write.options.body), "is_admin"), false);
+  } finally { globalThis.fetch = original; }
+});
+
+test("assignable profile catalog is used as the authoritative selector source", async () => {
+  const api = await import("../src/services/api.js?assignable-profiles");
+  const calls = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = async (path, options) => {
+    calls.push({ path, options });
+    return { ok: true, status: 200, json: async () => path.endsWith("/auth/me")
+      ? { csrf_token: "csrf", user: {} }
+      : { profiles: [{ id: 9, name: "Administrador", is_active: true }] } };
+  };
+  try {
+    const result = await api.getAssignableProfiles();
+    assert.deepEqual(result.profiles.map((profile) => profile.name), ["Administrador"]);
+    assert.equal(calls.find((call) => call.path === "/api/v1/users/assignable-profiles").path,
+      "/api/v1/users/assignable-profiles");
   } finally { globalThis.fetch = original; }
 });

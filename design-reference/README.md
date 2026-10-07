@@ -1,6 +1,6 @@
-# Modelo visual da prévia clínica
+# Referência visual exploratória arquivada
 
-Este conjunto é independente do código principal e serve como base visual reutilizável.
+Este conjunto preserva uma exploração visual anterior da Clínica. É uma referência histórica, independente da aplicação: não participa do runtime nem do build e não é fonte de verdade do produto. `DESIGN.md` e a implementação atual do frontend prevalecem. Elementos demonstrados aqui que ainda não foram implementados não representam requisitos automaticamente.
 
 ## Arquivos
 

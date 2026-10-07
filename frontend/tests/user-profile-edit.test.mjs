@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer } from "vite";
-import { editableProfiles, hasSelectedProfile } from "../src/pages/Users/userProfileSelection.js";
+import { editableProfiles, hasSelectedProfile } from "../src/features/users/state/userProfileSelection.js";
+import { statusChanged } from "../src/features/users/state/userEditState.js";
 import { toggleProfileId } from "../src/components/ProfileMultiSelect/profileSelection.js";
 
 const user = {
@@ -28,10 +29,17 @@ test("editing keeps assigned inactive profiles, supports multiple additions and 
   assert.equal(hasSelectedProfile(toggleProfileId([1], 1, false)), false);
 });
 
+test("user edit compares the original status with the desired local status", async () => {
+  assert.equal(statusChanged(true, false), true);
+  assert.equal(statusChanged(false, true), true);
+  assert.equal(statusChanged(true, true), false);
+  assert.equal(statusChanged(false, false), false);
+});
+
 test("edit form shows assigned inactive profile and has no legacy admin selector", async () => {
   const vite = await createServer({ configFile: false, server: { middlewareMode: true }, cacheDir: "/tmp/clinica-vite-tests" });
   try {
-    const { default: UserCreate } = await vite.ssrLoadModule("/src/pages/Users/UserCreate/UserCreate.jsx");
+    const { default: UserCreate } = await vite.ssrLoadModule("/src/features/users/UserFormFeature.jsx");
     const html = renderToStaticMarkup(createElement(UserCreate, {
       user, availableProfiles: editableProfiles(catalog, user.profiles), isActive: true,
       onSaved() {}, onCancel() {},

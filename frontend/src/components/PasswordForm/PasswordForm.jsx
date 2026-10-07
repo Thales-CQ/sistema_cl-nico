@@ -1,103 +1,75 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef } from "react";
 import Button from "../Button/Button";
-import { changeOwnPassword, resetUserPassword } from "../../services/api";
-import { validatePasswordConfirmation } from "../../pages/Users/userForm";
-import "../../pages/Users/Users.css";
+import FormField from "../FormField/FormField";
+import TextField from "../TextField/TextField";
+import "./PasswordForm.css";
 
-export default function PasswordForm({ userId, onCancel, onFailure, disabled = false, onBusyChange }) {
-  const own = userId === undefined;
+export default function PasswordForm({
+  showCurrentPassword,
+  disabled = false,
+  saving = false,
+  error,
+  fieldErrors = {},
+  success,
+  focusRequest,
+  onSubmit,
+  onCancel,
+}) {
   const prefix = useId();
-  const firstInput = useRef(null);
   const currentInput = useRef(null);
   const newInput = useRef(null);
   const confirmationInput = useRef(null);
-  const busy = useRef(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [success, setSuccess] = useState("");
 
-  useEffect(() => { firstInput.current?.focus(); }, []);
+  useEffect(() => {
+    (showCurrentPassword ? currentInput : newInput).current?.focus();
+  }, [showCurrentPassword]);
 
-  async function handleSubmit(event) {
-    event.preventDefault();
-    if (busy.current || disabled) return;
-    const form = event.currentTarget;
-    const data = new FormData(form);
-    setError("");
-    setFieldErrors({});
-    setSuccess("");
-    try {
-      validatePasswordConfirmation(data.get("new_password"), data.get("confirmation"));
-    } catch (failure) {
-      const field = failure.message.includes("confirmação") ? "confirmation" : "new_password";
-      setFieldErrors({ [field]: failure.message });
-      (field === "confirmation" ? confirmationInput : newInput).current?.focus();
-      return;
-    }
-    busy.current = true;
-    setSaving(true);
-    onBusyChange?.(true);
-    let focusTarget = firstInput;
-    try {
-      if (own) await changeOwnPassword(data.get("current_password"), data.get("new_password"));
-      else await resetUserPassword(userId, data.get("new_password"));
-      setSuccess("Senha atualizada com sucesso.");
-    } catch (failure) {
-      if (own && /senha atual/i.test(failure.message)) {
-        setFieldErrors({ current_password: failure.message });
-        focusTarget = currentInput;
-      } else if (/senha deve ter pelo menos/i.test(failure.message)) {
-        setFieldErrors({ new_password: failure.message });
-        focusTarget = newInput;
-      } else {
-        setError(failure.message);
-      }
-      onFailure?.(failure);
-    } finally {
-      form.reset();
-      busy.current = false;
-      setSaving(false);
-      onBusyChange?.(false);
-      focusTarget.current?.focus();
-    }
-  }
+  useEffect(() => {
+    if (!focusRequest?.revision) return;
+    const targets = {
+      current_password: currentInput,
+      new_password: newInput,
+      confirmation: confirmationInput,
+    };
+    targets[focusRequest.field]?.current?.focus();
+  }, [focusRequest]);
 
   return (
-    <form className="user-form" onSubmit={handleSubmit} aria-labelledby={`${prefix}-title`}>
-      <h2 id={`${prefix}-title`}>{own ? "Alterar minha senha" : "Redefinir senha"}</h2>
-      <div className="user-form__fields">
-        {own && <div className="user-form__field">
-          <label htmlFor={`${prefix}-current`}>Senha atual</label>
-          <input ref={(node) => { firstInput.current = node; currentInput.current = node; }} id={`${prefix}-current`}
+    <form className={`password-form${showCurrentPassword ? "" : " password-form--reset"}`}
+      onSubmit={onSubmit} aria-labelledby={`${prefix}-title`}>
+      <h2 id={`${prefix}-title`}>{showCurrentPassword ? "Alterar minha senha" : "Redefinir senha"}</h2>
+      <div className="password-form__fields">
+        {showCurrentPassword && <FormField className="password-form__field" label="Senha atual" htmlFor={`${prefix}-current`}
+          error={fieldErrors.current_password} errorId={`${prefix}-current-error`}>
+          <TextField ref={currentInput} id={`${prefix}-current`}
             name="current_password" type="password" autoComplete="current-password" required disabled={saving || disabled}
             aria-invalid={Boolean(fieldErrors.current_password)}
             aria-describedby={fieldErrors.current_password ? `${prefix}-current-error` : undefined} />
-          {fieldErrors.current_password && <p id={`${prefix}-current-error`} className="form-field__error" role="alert">{fieldErrors.current_password}</p>}
-        </div>}
-        <div className="user-form__field">
-          <label htmlFor={`${prefix}-new`}>Nova senha</label>
-          <input ref={(node) => { newInput.current = node; if (!own) firstInput.current = node; }}
+        </FormField>}
+        <FormField className="password-form__field" label="Nova senha" htmlFor={`${prefix}-new`}
+          error={fieldErrors.new_password} errorId={`${prefix}-new-error`}>
+          <TextField ref={newInput}
             id={`${prefix}-new`} name="new_password" type="password" autoComplete="new-password"
             placeholder="Mínimo de 12 caracteres." required disabled={saving || disabled}
             aria-invalid={Boolean(fieldErrors.new_password)}
             aria-describedby={fieldErrors.new_password ? `${prefix}-new-error` : undefined} />
-          {fieldErrors.new_password && <p id={`${prefix}-new-error`} className="form-field__error" role="alert">{fieldErrors.new_password}</p>}
-        </div>
-        <div className="user-form__field">
-          <label htmlFor={`${prefix}-confirm`}>Confirmar nova senha</label>
-          <input id={`${prefix}-confirm`} name="confirmation" type="password"
+        </FormField>
+        <FormField className="password-form__field" label="Confirmar nova senha" htmlFor={`${prefix}-confirm`}
+          error={fieldErrors.confirmation} errorId={`${prefix}-confirm-error`}>
+          <TextField id={`${prefix}-confirm`} name="confirmation" type="password"
             ref={confirmationInput} autoComplete="new-password" required disabled={saving || disabled}
             aria-invalid={Boolean(fieldErrors.confirmation)}
             aria-describedby={fieldErrors.confirmation ? `${prefix}-confirm-error` : undefined} />
-          {fieldErrors.confirmation && <p id={`${prefix}-confirm-error`} className="form-field__error" role="alert">{fieldErrors.confirmation}</p>}
-        </div>
+        </FormField>
       </div>
-      {error && <p className="users__error" role="alert">{error}</p>}
-      {success && <p className="users__success" role="status">{success}</p>}
-      <div className="user-form__actions">
-        <Button className={own ? undefined : "user-form__save"} type="submit" disabled={saving || disabled}>{saving ? "Salvando..." : "Salvar nova senha"}</Button>
-        <Button className={own ? undefined : "user-form__cancel"} variant="secondary" disabled={saving || disabled} onClick={onCancel}>Cancelar</Button>
+      {error && <p className="password-form__error" role="alert">{error}</p>}
+      {success && <p className="password-form__success" role="status">{success}</p>}
+      <div className="password-form__actions">
+        <Button className={showCurrentPassword ? undefined : "password-form__save"} type="submit" disabled={saving || disabled}>
+          {saving ? "Salvando..." : "Salvar nova senha"}
+        </Button>
+        <Button className={showCurrentPassword ? undefined : "password-form__cancel"} variant="secondary"
+          disabled={saving || disabled} onClick={onCancel}>Cancelar</Button>
       </div>
     </form>
   );

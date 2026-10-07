@@ -1,16 +1,56 @@
-# React + Vite
+# Frontend da Clínica
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicação web do Sistema Clínico para organizar a operação da clínica e simplificar o atendimento e os cadastros. A interface atende equipes administrativas e profissionais de saúde, em português do Brasil, com temas claro e escuro e layouts responsivos.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19;
+- Vite 8;
+- JavaScript com JSX;
+- CSS, tokens semânticos e temas por variáveis CSS;
+- ESLint.
 
-## React Compiler
+## Arquitetura
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```text
+src/
+  App.jsx                 composição de páginas e áreas pública/autenticada
+  components/             componentes compartilhados e primitivas visuais
+  contexts/               estado compartilhado de autenticação
+  features/               módulos de pacientes, usuários e perfis
+  hooks/                  coordenação compartilhada da aplicação
+  layouts/                composição de autenticação e área interna
+  pages/                  Login, Dashboard e ChangePassword
+  routes/                 resolução e metadados de navegação
+  services/               integração HTTP compartilhada
+  styles/                 reset, estilos globais, tokens e temas
+tests/                    testes automatizados do frontend
+```
 
-## Expanding the ESLint configuration
+### Ownership
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `pages/` representa páginas da aplicação e compõe as features necessárias; não é o local proprietário dos módulos de pacientes, usuários ou perfis.
+- `features/<módulo>/` mantém apresentação, hooks, regras/funções específicas e estilos próprios daquele módulo.
+- `components/` contém UI compartilhada sem regras de negócio ou acesso direto à API.
+- `layouts/` controla a composição de shell e conteúdo; autenticação, autorização, rotas e decisões de navegação permanecem na aplicação.
+- `styles/` contém a fundação global e regras globais de layout que não pertencem a uma feature ou componente.
+- A lógica e a integração com serviços ficam em JavaScript/JSX; CSS controla a apresentação. Evite CSS inline e preserve os contratos e comportamentos das features.
+
+## Instalação e execução
+
+Na pasta `frontend/`:
+
+```sh
+npm install
+npm run dev
+```
+
+## Verificações
+
+Execute na pasta `frontend/`:
+
+```sh
+npm run lint
+npm run build
+node --test tests/*.test.mjs
+```

@@ -6,9 +6,9 @@ import AuthLayout from "./layouts/AuthLayout/AuthLayout";
 import MainLayout from "./layouts/MainLayout/MainLayout";
 import Login from "./pages/Login/Login";
 import Dashboard from "./pages/Dashboard/Dashboard";
-import Patients from "./pages/Patients/Patients";
-import Users from "./pages/Users/Users";
-import Profiles from "./pages/Profiles/Profiles";
+import Patients from "./features/patients/PatientsFeature.jsx";
+import Users from "./features/users/UsersFeature.jsx";
+import Profiles from "./features/profiles/ProfilesFeature.jsx";
 import ChangePassword from "./pages/ChangePassword/ChangePassword";
 import Button from "./components/Button/Button";
 

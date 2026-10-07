@@ -1,9 +1,11 @@
+/* Consistent sizing for every element and pseudo-element. */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
+/* Remove browser-default spacing from the document and common content blocks. */
 html,
 body,
 #root {
@@ -20,6 +22,7 @@ ol {
   margin: 0;
 }
 
+/* Keep controls in the inherited type system. */
 button,
 input,
 select,
@@ -27,6 +30,7 @@ textarea {
   font: inherit;
 }
 
+/* Links and buttons inherit the surrounding text color unless a component sets one. */
 button,
 a {
   color: inherit;

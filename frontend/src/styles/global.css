@@ -1,3 +1,4 @@
+/* Document defaults */
 body {
   min-width: 320px;
   font-family: var(--font-family);
@@ -7,11 +8,13 @@ body {
   background: var(--color-background);
 }
 
+/* App viewport sizing */
 #root {
   min-height: 100vh;
   min-height: 100svh;
 }
 
+/* Heading scale */
 h1,
 h2,
 h3 {
@@ -31,6 +34,7 @@ a {
   color: var(--color-primary);
 }
 
+/* Shared module layout */
 .module-shell {
   display: grid;
   grid-template-columns: minmax(10rem, var(--module-sidebar-width)) minmax(0, 1fr);
@@ -40,6 +44,7 @@ a {
   min-width: 0;
 }
 
+/* Shared module navigation */
 .module-sidebar {
   display: grid;
   align-content: start;
@@ -90,11 +95,13 @@ a {
   box-shadow: inset 3px 0 var(--color-nav-accent);
 }
 
+/* Global keyboard focus */
 :focus-visible {
   outline: var(--focus-width) solid var(--color-focus);
   outline-offset: var(--focus-offset);
 }
 
+/* Honor the user's reduced-motion preference. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -106,6 +113,7 @@ a {
   }
 }
 
+/* Smartphone module layout (<= 40rem). */
 @media (max-width: 40rem) {
   .module-shell {
     grid-template-columns: minmax(0, 1fr);

@@ -40,41 +40,43 @@ MySQL
 - Páginas devem reutilizar componentes e layouts;
 - AuthContext e proteção de rotas no frontend nunca substituem a validação/autorização no backend.
 
-#### Estrutura planejada e evolutiva
+#### Estrutura atual do frontend
 
-A árvore abaixo é uma referência arquitetural planejada e evolutiva.
-Nem todas as pastas e arquivos precisam existir imediatamente. A implementação
-deve acontecer gradualmente, conforme cada funcionalidade for criada.
+A aplicação organiza páginas, componentes compartilhados e funcionalidades por ownership. `App.jsx` compõe páginas e features; os módulos de pacientes, usuários e perfis pertencem a `features/`, não a `pages/`.
 
 ```text
 frontend/
 └── src/
+    ├── App.jsx
     ├── components/
-    │   ├── Header/
-    │   ├── Menu/
-    │   ├── Button/
-    │   └── Form/
+    │   ├── Header/, Menu/, Button/
+    │   └── primitivas compartilhadas de formulário e senha
+    ├── contexts/
     ├── layouts/
     │   ├── AuthLayout/
     │   └── MainLayout/
+    ├── features/
+    │   ├── patients/       # componentes, hooks e styles
+    │   ├── users/          # componentes, hooks, state e styles
+    │   └── profiles/       # componentes, hooks, state e styles
     ├── pages/
     │   ├── Login/
     │   ├── Dashboard/
-    │   └── Patients/
+    │   └── ChangePassword/
+    ├── routes/
+    ├── services/
     ├── styles/
     │   ├── variables.css
     │   ├── themes.css
     │   ├── global.css
-    │   └── responsive.css
-    ├── services/
-    │   └── api.js
-    ├── contexts/
-    │   └── AuthContext.jsx
+    │   ├── reset.css
+    │   └── tablet.css
     ├── hooks/
-    ├── routes/
-    ├── utils/
-    └── App.jsx
+    └── main.jsx
+frontend/tests/
 ```
+
+Cada feature é proprietária da apresentação e dos estilos específicos do seu módulo. `components/` contém UI reutilizável sem regras de negócio; `styles/` mantém a fundação global. Consulte `frontend/README.md` para comandos e detalhes de ownership.
 
 ## Princípios
 

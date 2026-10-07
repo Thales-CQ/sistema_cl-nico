@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizeUserSearch, selectUsers, userProfileLabel } from "../src/pages/Users/UserList/userListQuery.js";
+import { normalizeUserSearch, selectUsers, userProfileLabel } from "../src/features/users/state/userListQuery.js";
 
 const users = Object.freeze([
   { id: 1, full_name: "Zélia Costa", email: "zelia@example.com", username: "zc", is_admin: false, is_active: true,

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import Button from "../../components/Button/Button";
+import FormField from "../../components/FormField/FormField";
+import TextField from "../../components/TextField/TextField";
 import { useAuth } from "../../hooks/useAuth";
 import AuthLayout from "../../layouts/AuthLayout/AuthLayout";
 import "./Login.css";
@@ -25,23 +27,21 @@ export default function Login() {
       </div>
       <form className="login__form" onSubmit={handleSubmit} aria-busy={operationLoading}
         aria-labelledby="login-title" aria-describedby={error && !credentialError ? "login-error" : undefined}>
-        <div className="login__field">
-          <label className="login__label" htmlFor="username">Nome de usuário</label>
-          <input className="login__input" id="username" name="username" autoComplete="username"
+        <FormField as="div" className="login__field" label="Nome de usuário" labelClassName="login__label" htmlFor="username">
+          <TextField className="login__input" id="username" name="username" autoComplete="username"
             autoCapitalize="none" spellCheck={false}
             required value={username} disabled={operationLoading}
             aria-invalid={credentialError} aria-describedby={credentialError ? "login-error" : undefined}
             onChange={(event) => setUsername(event.target.value)} />
-        </div>
-        <div className="login__field">
-          <label className="login__label" htmlFor="password">Senha</label>
-          <input className="login__input" id="password" name="password" type="password"
+        </FormField>
+        <FormField as="div" className="login__field" label="Senha" labelClassName="login__label" htmlFor="password"
+          error={credentialError ? error : ""} errorId="login-error">
+          <TextField className="login__input" id="password" name="password" type="password"
             autoComplete="current-password" required value={password}
             disabled={operationLoading}
             aria-invalid={credentialError} aria-describedby={credentialError ? "login-error" : undefined}
             onChange={(event) => setPassword(event.target.value)} />
-          {credentialError && <p className="form-field__error" id="login-error" role="alert">{error}</p>}
-        </div>
+        </FormField>
         {error && !credentialError && <p className="login__error" id="login-error" role="alert">{error}</p>}
         {operationLoading && (
           <p className="login__status" role="status">Aguarde, processando solicitação...</p>

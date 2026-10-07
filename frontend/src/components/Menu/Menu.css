@@ -245,3 +245,34 @@
     opacity: 0.58;
   }
 }
+
+@media (40rem < width <= 64rem) {
+  .menu__toggle {
+    display: none;
+  }
+
+  .menu__list,
+  .menu--open .menu__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    align-items: start;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--page-padding);
+  }
+
+  .menu__link {
+    width: 100%;
+    min-height: var(--control-height);
+    justify-content: center;
+    text-align: center;
+  }
+
+  /* Expanded submenus occupy space in their item instead of covering neighbors. */
+  .menu__submenu {
+    position: static;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin: var(--space-1) 0 0;
+  }
+}
