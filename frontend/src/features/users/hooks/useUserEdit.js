@@ -2,6 +2,18 @@ import { useEffect, useState } from "react";
 import { getAssignableProfiles, getUser, updateUserStatus } from "../../../services/api";
 import { statusChanged } from "../state/userEditState";
 
+export async function completeUserEditStatus(updatedUser, {
+  originalIsActive,
+  desiredStatus,
+  statusIncluded = false,
+}) {
+  if (statusChanged(originalIsActive, desiredStatus) && !statusIncluded) {
+    const status = await updateUserStatus(updatedUser.id, desiredStatus);
+    return status.user;
+  }
+  return updatedUser;
+}
+
 export default function useUserEdit({ userId, onSaved, onFailure, canAssignProfiles = false, passwordButton }) {
   const [user, setUser] = useState(null);
   const [originalIsActive, setOriginalIsActive] = useState(null);
@@ -40,22 +52,21 @@ export default function useUserEdit({ userId, onSaved, onFailure, canAssignProfi
     setUser((current) => ({ ...current, is_active: !current.is_active }));
   }
 
-  async function handleFormSaved(updatedUser) {
+  async function handleFormSaved(updatedUser, { statusIncluded = false } = {}) {
     const desiredStatus = user.is_active;
-    if (statusChanged(originalIsActive, desiredStatus)) {
-      try {
-        const status = await updateUserStatus(user.id, desiredStatus);
-        setUser(status.user);
-        setOriginalIsActive(status.user.is_active);
-        onSaved(status.user);
-      } catch (failure) {
-        setStatusError(failure.message);
-        throw failure;
-      }
-      return;
+    try {
+      const savedUser = await completeUserEditStatus(updatedUser, {
+        originalIsActive,
+        desiredStatus,
+        statusIncluded,
+      });
+      setUser(savedUser);
+      setOriginalIsActive(savedUser.is_active);
+      onSaved(savedUser);
+    } catch (failure) {
+      setStatusError(failure.message);
+      throw failure;
     }
-    setUser(updatedUser);
-    onSaved(updatedUser);
   }
 
   function cancelPasswordReset() {

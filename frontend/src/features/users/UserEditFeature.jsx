@@ -22,6 +22,7 @@ export default function UserEditFeature(props) {
       canUpdateData = false, canChangeStatus = false, canResetPassword = false,
       canAssignProfiles = false,
     } = props;
+    const canChangeStatusWithData = canUpdateData && canChangeStatus;
     const extraActions = <>
       {canChangeStatus && <Button className={`user-edit__status-button user-edit__status-button--${edit.user.is_active ? "inactive" : "active"}`}
         type="button" variant="secondary" disabled={edit.working} onClick={edit.changeStatus}>
@@ -34,7 +35,7 @@ export default function UserEditFeature(props) {
     </>;
     form = <>
       <UserFormFeature user={edit.user} availableProfiles={edit.profiles} canUpdateData={canUpdateData}
-        canAssignProfiles={canAssignProfiles} canChangeStatus={false}
+        canAssignProfiles={canAssignProfiles} canChangeStatus={canChangeStatusWithData}
         canSubmit={canUpdateData || canAssignProfiles || canChangeStatus}
         onSaved={edit.handleFormSaved} onCancel={props.onCancel} onFailure={props.onFailure}
         disabled={edit.working} onBusyChange={edit.setWorking} isActive={edit.user.is_active}

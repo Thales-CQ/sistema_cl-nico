@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer } from "vite";
@@ -34,6 +35,122 @@ test("user edit compares the original status with the desired local status", asy
   assert.equal(statusChanged(false, true), true);
   assert.equal(statusChanged(true, true), false);
   assert.equal(statusChanged(false, false), false);
+});
+
+test("user edit combines status with data updates and keeps the status endpoint for profiles-only edits", async () => {
+  const featureSource = await readFile(
+    new URL("../src/features/users/UserEditFeature.jsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(featureSource, /canChangeStatus=\{canChangeStatusWithData\}/);
+
+  const vite = await createServer({
+    configFile: false,
+    server: { middlewareMode: true, hmr: false },
+    cacheDir: "/tmp/clinica-vite-tests",
+  });
+  const originalFetch = globalThis.fetch;
+  const originalFormData = globalThis.FormData;
+  const calls = [];
+  const serverUsers = new Map([
+    [7, { ...user }],
+    [8, { ...user, id: 8 }],
+  ]);
+  globalThis.FormData = class TestFormData {
+    constructor(form) { this.values = form.values; }
+    get(name) { return this.values[name] ?? ""; }
+  };
+  globalThis.fetch = async (path, options = {}) => {
+    calls.push({ path, options });
+    if (path.endsWith("/auth/me")) {
+      return { ok: true, status: 200, json: async () => ({ csrf_token: "user-edit-csrf", user: { id: 1 } }) };
+    }
+    const userId = Number(path.match(/\/users\/(\d+)/)?.[1]);
+    const payload = JSON.parse(options.body);
+    const currentUser = serverUsers.get(userId);
+    const updatedUser = path.endsWith("/status")
+      ? { ...currentUser, is_active: payload.is_active }
+      : { ...currentUser, ...payload };
+    serverUsers.set(userId, updatedUser);
+    return { ok: true, status: 200, json: async () => ({ user: updatedUser }) };
+  };
+
+  try {
+    const [{ default: useUserForm }, { completeUserEditStatus }] = await Promise.all([
+      vite.ssrLoadModule("/src/features/users/hooks/useUserForm.js"),
+      vite.ssrLoadModule("/src/features/users/hooks/useUserEdit.js"),
+    ]);
+    async function submitEdit(editUser, options) {
+      let submit;
+      function FormHarness() {
+        const form = useUserForm({
+          user: editUser,
+          isActive: false,
+          onSaved() {},
+          ...options,
+        });
+        submit = form.handleSubmit;
+        return null;
+      }
+      renderToStaticMarkup(createElement(FormHarness));
+      await submit({
+        preventDefault() {},
+        currentTarget: { values: {
+          full_name: "Ana Silva",
+          email: "ana@example.com",
+          username: "ana",
+          birth_date: "02/01/2000",
+        } },
+      });
+    }
+
+    await submitEdit(user, {
+      canUpdateData: true,
+      canAssignProfiles: true,
+      canChangeStatus: true,
+    });
+    const combinedResult = await completeUserEditStatus(serverUsers.get(7), {
+      originalIsActive: true,
+      desiredStatus: false,
+      statusIncluded: true,
+    });
+    const combinedWrites = calls.filter(({ path, options }) => (
+      path.startsWith("/api/v1/users/7") && options.method === "PATCH"
+    ));
+    const combinedRequest = calls.find(({ path, options }) => path === "/api/v1/users/7" && options.method === "PATCH");
+    assert.equal(combinedResult.is_active, false);
+    assert.deepEqual(combinedWrites.map(({ path }) => path), ["/api/v1/users/7"]);
+    assert.deepEqual(JSON.parse(combinedRequest.options.body), {
+      full_name: "Ana Silva",
+      email: "ana@example.com",
+      username: "ana",
+      profile_ids: [1, 2],
+      birth_date: "2000-01-02",
+      is_active: false,
+    });
+    assert.equal(calls.some(({ path }) => path === "/api/v1/users/7/status"), false);
+
+    await submitEdit({ ...user, id: 8 }, {
+      canUpdateData: false,
+      canAssignProfiles: true,
+      canChangeStatus: false,
+    });
+    const profileUpdate = calls.find(({ path, options }) => path === "/api/v1/users/8" && options.method === "PATCH");
+    assert.deepEqual(JSON.parse(profileUpdate.options.body), { profile_ids: [1, 2] });
+    const profilesOnlyResult = await completeUserEditStatus(serverUsers.get(8), {
+      originalIsActive: true,
+      desiredStatus: false,
+      statusIncluded: false,
+    });
+    assert.equal(profilesOnlyResult.is_active, false);
+    assert.deepEqual(calls.filter(({ path, options }) => path.startsWith("/api/v1/users/8") && options.method === "PATCH")
+      .map(({ path }) => path), ["/api/v1/users/8", "/api/v1/users/8/status"]);
+    assert.deepEqual(JSON.parse(calls.find(({ path }) => path === "/api/v1/users/8/status").options.body), { is_active: false });
+  } finally {
+    globalThis.fetch = originalFetch;
+    globalThis.FormData = originalFormData;
+    await vite.close();
+  }
 });
 
 test("edit form shows assigned inactive profile and has no legacy admin selector", async () => {

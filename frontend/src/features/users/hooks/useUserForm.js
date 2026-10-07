@@ -98,7 +98,7 @@ export default function useUserForm({
         validatePasswordConfirmation(data.get("password"), data.get("confirmation"));
         payload.password = data.get("password");
       } else if (canChangeStatus) {
-        if (canChangeStatus) payload.is_active = isActive;
+        payload.is_active = isActive;
       }
     } catch (failure) {
       const field = failure.message.includes("confirmação") ? "confirmation"
@@ -119,7 +119,10 @@ export default function useUserForm({
         ? (canUpdateData || canAssignProfiles ? await updateUser(user.id, payload) : { user })
         : await createUser(payload);
       if (!editing) form.reset();
-      if (active.current) await onSaved(result.user);
+      if (active.current) {
+        if (editing) await onSaved(result.user, { statusIncluded: canChangeStatus });
+        else await onSaved(result.user);
+      }
     } catch (failure) {
       const message = failure.message.toLowerCase();
       const field = message.includes("nome completo") || message.includes("nome e sobrenome") ? "full_name"
