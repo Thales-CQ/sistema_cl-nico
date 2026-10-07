@@ -1,4 +1,4 @@
-# Sistema Clínico
+# TCQ Clinic
 
 Sistema web para gerenciamento de informações clínicas.
 

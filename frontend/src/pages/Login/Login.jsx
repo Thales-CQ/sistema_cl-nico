@@ -20,7 +20,7 @@ export default function Login() {
   }
 
   return (
-    <AuthLayout>
+    <AuthLayout variant="login">
       <div className="login__intro">
         <h2 id="login-title">Entrar</h2>
         <p className="login__description">Informe suas credenciais para acessar o sistema.</p>
@@ -44,7 +44,10 @@ export default function Login() {
         </FormField>
         {error && !credentialError && <p className="login__error" id="login-error" role="alert">{error}</p>}
         {operationLoading && (
-          <p className="login__status" role="status">Aguarde, processando solicitação...</p>
+          <p className="login__status" role="status">
+            <span className="login__status-indicator" aria-hidden="true" />
+            Aguarde, processando solicitação...
+          </p>
         )}
         <Button type="submit" disabled={operationLoading}>Entrar</Button>
       </form>

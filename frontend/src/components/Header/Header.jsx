@@ -15,7 +15,7 @@ export default function Header({ user, onLogout, operationLoading = false }) {
             <BrandMark />
           </span>
           <div className="header__brand-copy">
-            <p className="header__brand-name">Sistema Clínico</p>
+            <p className="header__brand-name">TCQ Clinic</p>
           </div>
         </div>
 

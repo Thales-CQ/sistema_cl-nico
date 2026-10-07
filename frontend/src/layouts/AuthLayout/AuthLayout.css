@@ -47,6 +47,131 @@
   text-align: center;
 }
 
+.auth-layout--login {
+  place-items: start center;
+  padding: max(1rem, env(safe-area-inset-top)) 1rem max(1.5rem, env(safe-area-inset-bottom));
+}
+
+.auth-layout__panel--login {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  max-width: 34rem;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 1rem;
+  box-shadow: var(--shadow-card);
+}
+
+.auth-layout__identity {
+  position: relative;
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  padding: 1.5rem clamp(1.5rem, 6vw, 2.5rem);
+  background: var(--color-surface-soft);
+  overflow: hidden;
+}
+
+.auth-layout__identity::after {
+  position: absolute;
+  right: -9rem;
+  bottom: -13rem;
+  width: 20rem;
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 20%, transparent);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.auth-layout__brand-lockup {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  justify-items: start;
+  gap: 1rem;
+}
+
+.auth-layout__brand-mark {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  aspect-ratio: 1;
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border-radius: 0.875rem;
+}
+
+.auth-layout__brand-mark svg {
+  display: block;
+  width: 54%;
+  height: 54%;
+}
+
+.auth-layout__panel--login .auth-layout__title {
+  max-width: none;
+  font-size: clamp(1.75rem, 8vw, 2.5rem);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.auth-layout__content {
+  display: grid;
+  align-content: center;
+  min-width: 0;
+  padding: clamp(1.5rem, 6vw, 2.5rem);
+}
+
+@media (min-width: 48.0625rem) {
+  .auth-layout--login {
+    place-items: center;
+    padding: clamp(1rem, 3vw, 2.25rem);
+  }
+
+  .auth-layout__panel--login {
+    grid-template-columns: minmax(15rem, 0.9fr) minmax(20rem, 1.1fr);
+    max-width: 68rem;
+    min-height: min(42rem, calc(100svh - 4.5rem));
+  }
+
+  .auth-layout__identity {
+    padding: clamp(2rem, 5vw, 4.5rem);
+  }
+
+  .auth-layout__identity::after {
+    right: -8rem;
+    bottom: -11rem;
+    width: clamp(16rem, 32vw, 26rem);
+  }
+
+  .auth-layout__brand-lockup {
+    grid-auto-flow: row;
+    gap: clamp(1.5rem, 4vw, 3rem);
+  }
+
+  .auth-layout__brand-mark {
+    width: clamp(3.5rem, 6vw, 4.5rem);
+    border-radius: 1.25rem;
+  }
+
+  .auth-layout__panel--login .auth-layout__title {
+    max-width: 5ch;
+    font-size: clamp(3.25rem, 7.4vw, 5.75rem);
+    line-height: 0.98;
+  }
+
+  .auth-layout__content {
+    padding: clamp(2.25rem, 6vw, 5rem);
+  }
+}
+
 @media (max-width: 30rem) {
   .auth-layout__panel {
     padding: 22px 18px;

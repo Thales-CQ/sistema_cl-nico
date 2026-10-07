@@ -1,5 +1,5 @@
 ---
-name: Sistema Clínico
+name: TCQ Clinic
 description: Interface clínica serena e organizada para tarefas administrativas e de cuidado.
 colors:
   background: "#f3f8fc"
@@ -128,7 +128,7 @@ components:
     rounded: "999px"
     padding: "4px 9px"
 ---
-# Design System: Sistema Clínico
+# Design System: TCQ Clinic
 
 ## Overview
 

@@ -1,4 +1,4 @@
-# Histórico de Versões — Sistema Clínico
+# Histórico de Versões — TCQ Clinic
 
 Este documento registra somente versões concluídas, com seus objetivos,
 principais alterações, testes realizados e commits correspondentes.

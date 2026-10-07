@@ -1,6 +1,6 @@
-# Frontend da Clínica
+# Frontend do TCQ Clinic
 
-Aplicação web do Sistema Clínico para organizar a operação da clínica e simplificar o atendimento e os cadastros. A interface atende equipes administrativas e profissionais de saúde, em português do Brasil, com temas claro e escuro e layouts responsivos.
+Aplicação web do TCQ Clinic para organizar a operação da clínica e simplificar o atendimento e os cadastros. A interface atende equipes administrativas e profissionais de saúde, em português do Brasil, com temas claro e escuro e layouts responsivos.
 
 ## Stack
 
