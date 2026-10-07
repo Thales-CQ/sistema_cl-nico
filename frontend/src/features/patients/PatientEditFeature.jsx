@@ -32,6 +32,7 @@ function PatientEditFormFeature({ edit, onCancel, canChangeStatus }) {
   return <PatientFormFeature
     patient={patient}
     mode="edit"
+    canChangeStatus={canChangeStatus}
     onUpdated={handlePatientUpdated}
     onCancel={onCancel}
     extraActions={statusAction}

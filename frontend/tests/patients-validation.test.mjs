@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer } from "vite";
@@ -58,6 +59,89 @@ test("patient create, edit and status API payloads preserve their contracts and 
     assert.equal(calls[0].path, "/api/v1/auth/me");
   } finally {
     globalThis.fetch = originalFetch;
+  }
+});
+
+test("patient edit saves data and status together when status permission is available", async () => {
+  const featureSource = await readFile(
+    new URL("../src/features/patients/PatientEditFeature.jsx", import.meta.url),
+    "utf8",
+  );
+  assert.match(featureSource, /<PatientFormFeature[\s\S]*?canChangeStatus=\{canChangeStatus\}/);
+
+  const vite = await createServer({
+    configFile: false,
+    server: { middlewareMode: true, hmr: false },
+    cacheDir: "/tmp/clinica-vite-tests",
+  });
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  let submit;
+  let updatedPatient;
+  const originalPatient = {
+    id: 7,
+    full_name: "Ana Silva",
+    birth_date: "2000-02-29",
+    sex: "F",
+    cpf: null,
+    phone: null,
+    email: null,
+    is_active: true,
+  };
+  const editedPatient = { ...originalPatient, is_active: false };
+  globalThis.fetch = async (path, options = {}) => {
+    calls.push({ path, options });
+    if (path.endsWith("/auth/me")) {
+      return response(200, { csrf_token: "patient-edit-csrf", user: { id: 1 } });
+    }
+    return response(200, { patient: {
+      id: 7,
+      full_name: "ANA SILVA",
+      birth_date: "2000-02-29",
+      sex: "F",
+      cpf: null,
+      phone: null,
+      email: null,
+      is_active: false,
+    } });
+  };
+  try {
+    const { default: usePatientForm } = await vite.ssrLoadModule(
+      "/src/features/patients/hooks/usePatientForm.js",
+    );
+    function SubmitHarness() {
+      const form = usePatientForm({
+        patient: editedPatient,
+        mode: "edit",
+        canChangeStatus: true,
+        onUpdated(patient) { updatedPatient = patient; },
+      });
+      submit = form.handleSubmit;
+      return null;
+    }
+
+    renderToStaticMarkup(createElement(SubmitHarness));
+    await submit({ preventDefault() {} });
+
+    const writes = calls.filter(({ options }) => options.method === "PATCH");
+    assert.equal(originalPatient.is_active, true);
+    assert.equal(editedPatient.is_active, false);
+    assert.equal(writes.length, 1);
+    assert.equal(writes[0].path, "/api/v1/patients/7");
+    assert.deepEqual(JSON.parse(writes[0].options.body), {
+      full_name: "Ana Silva",
+      birth_date: "2000-02-29",
+      sex: "F",
+      cpf: null,
+      phone: null,
+      email: null,
+      is_active: false,
+    });
+    assert.equal(updatedPatient.is_active, false);
+    assert.equal(calls.some(({ path }) => path.endsWith("/status")), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    await vite.close();
   }
 });
 
