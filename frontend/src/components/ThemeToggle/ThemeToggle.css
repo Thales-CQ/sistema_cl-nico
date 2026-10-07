@@ -1,9 +1,9 @@
 .theme-toggle {
   display: inline-grid;
   place-items: center;
-  flex: 0 0 42px;
-  width: 42px;
-  height: 42px;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   color: var(--color-text);
   background: var(--color-surface);
