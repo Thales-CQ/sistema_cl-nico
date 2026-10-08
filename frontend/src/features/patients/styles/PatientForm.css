@@ -25,6 +25,39 @@
   min-width: 0;
 }
 
+.patient-create__field input:read-only:not(:disabled) {
+  background: var(--color-surface-soft);
+  cursor: default;
+}
+
+.patient-create__section {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--color-border-subtle);
+}
+
+.patient-create__section-title {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+}
+
+.patient-create__section-note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-meta);
+}
+
+.patient-create__section-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+  min-width: 0;
+}
+
 .patient-create__field label {
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -156,6 +189,10 @@
     grid-template-columns: 1fr;
   }
 
+  .patient-create__section-fields {
+    grid-template-columns: 1fr;
+  }
+
   .patient-create {
     padding: 16px;
     border-radius: 12px;
@@ -172,6 +209,10 @@
   }
 
   .patient-create__fields {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  }
+
+  .patient-create__section-fields {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
   }
 

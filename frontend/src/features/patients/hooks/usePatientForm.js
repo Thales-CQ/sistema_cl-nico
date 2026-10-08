@@ -84,6 +84,7 @@ export default function usePatientForm({
     handleSubmit,
     nameInput,
     phone,
+    recordNumber: typeof patient?.record_number === "string" ? patient.record_number : "",
     saveError,
     saving,
     setBirthDate,

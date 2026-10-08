@@ -78,8 +78,10 @@ test("patient edit saves data and status together when status permission is avai
   const originalFetch = globalThis.fetch;
   let submit;
   let updatedPatient;
+  let editForm;
   const originalPatient = {
     id: 7,
+    record_number: "000007",
     full_name: "Ana Silva",
     birth_date: "2000-02-29",
     sex: "F",
@@ -110,13 +112,13 @@ test("patient edit saves data and status together when status permission is avai
       "/src/features/patients/hooks/usePatientForm.js",
     );
     function SubmitHarness() {
-      const form = usePatientForm({
+      editForm = usePatientForm({
         patient: editedPatient,
         mode: "edit",
         canChangeStatus: true,
         onUpdated(patient) { updatedPatient = patient; },
       });
-      submit = form.handleSubmit;
+      submit = editForm.handleSubmit;
       return null;
     }
 
@@ -126,6 +128,7 @@ test("patient edit saves data and status together when status permission is avai
     const writes = calls.filter(({ options }) => options.method === "PATCH");
     assert.equal(originalPatient.is_active, true);
     assert.equal(editedPatient.is_active, false);
+    assert.equal(editForm.recordNumber, "000007");
     assert.equal(writes.length, 1);
     assert.equal(writes[0].path, "/api/v1/patients/7");
     assert.deepEqual(JSON.parse(writes[0].options.body), {
@@ -220,7 +223,8 @@ test("patient edit loading/error and form saving states render accessibly", asyn
     assert.match(error, /Paciente não encontrado/);
     const form = {
       birthDate: "", cpf: "", editing: true, email: "", fieldErrors: {}, fullName: "Ana Silva",
-      handleSubmit() {}, nameInput: { current: null }, phone: "", saveError: "", saving: true,
+      handleSubmit() {}, nameInput: { current: null }, phone: "", recordNumber: "000042",
+      saveError: "", saving: true,
       setBirthDate() {}, setCpf() {}, setEmail() {}, setFullName() {}, setPhone() {}, setSex() {}, sex: "F",
     };
     const saving = renderToStaticMarkup(createElement(PatientForm, { form: {
@@ -230,7 +234,85 @@ test("patient edit loading/error and form saving states render accessibly", asyn
     }, onCancel() {} }));
     assert.match(saving, /Atualizando/);
     assert.match(saving, /disabled=""/);
+    assert.match(saving, /aria-labelledby="patient-address-title"[^>]*aria-describedby="patient-address-note"/);
+    assert.match(saving, /O salvamento do endereço será habilitado em uma próxima etapa\./);
+    for (const [id, label] of [
+      ["patient-postal-code", "CEP"],
+      ["patient-address", "Endereço"],
+      ["patient-address-number", "Número"],
+      ["patient-city", "Cidade"],
+    ]) {
+      assert.match(saving, new RegExp(`<label[^>]*for="${id}"[^>]*>${label}<\\/label>`));
+      const input = saving.match(new RegExp(`<input\\b[^>]*id="${id}"[^>]*>`))?.[0];
+      assert.ok(input, `campo ${label} renderizado`);
+      assert.doesNotMatch(input, /required|name=/);
+    }
+
+    const existingRecord = renderToStaticMarkup(createElement(PatientForm, {
+      form: { ...form, saving: false, recordNumber: "000042" }, onCancel() {},
+    }));
+    assert.match(existingRecord, /id="patient-record-number"[^>]*autoComplete="off"[^>]*readOnly=""[^>]*aria-readonly="true"[^>]*value="000042"/);
+
+    const noExistingRecord = renderToStaticMarkup(createElement(PatientForm, {
+      form: { ...form, saving: false, recordNumber: "" }, onCancel() {},
+    }));
+    assert.doesNotMatch(noExistingRecord, /id="patient-record-number"/);
+
+    const creating = renderToStaticMarkup(createElement(PatientForm, {
+      form: { ...form, editing: false, recordNumber: "", saving: false }, onCancel() {},
+    }));
+    assert.match(creating, /id="patient-record-number"[^>]*placeholder="Gerado após salvar"[^>]*readOnly=""[^>]*aria-readonly="true"/);
   } finally {
+    await vite.close();
+  }
+});
+
+test("patient form keeps address inputs local and out of the create API payload", async () => {
+  const vite = await createServer({
+    configFile: false,
+    server: { middlewareMode: true, hmr: false },
+    cacheDir: "/tmp/clinica-vite-tests",
+  });
+  const calls = [];
+  const originalFetch = globalThis.fetch;
+  let form;
+  let markup;
+  globalThis.fetch = async (path, options = {}) => {
+    calls.push({ path, options });
+    if (path.endsWith("/auth/me")) return response(200, { csrf_token: "patient-local-csrf", user: { id: 1 } });
+    return response(201, { patient: { id: 8 } });
+  };
+  try {
+    const [{ default: usePatientForm }, { default: PatientForm }] = await Promise.all([
+      vite.ssrLoadModule("/src/features/patients/hooks/usePatientForm.js"),
+      vite.ssrLoadModule("/src/features/patients/components/PatientForm.jsx"),
+    ]);
+    function FormHarness() {
+      form = usePatientForm({ onCreated() {} });
+      return null;
+    }
+
+    renderToStaticMarkup(createElement(FormHarness));
+    markup = renderToStaticMarkup(createElement(PatientForm, { form, onCancel() {} }));
+    assert.equal(form.recordNumber, "");
+    assert.match(markup, /Gerado após salvar/);
+    assert.match(markup, />Endereço<\/h3>/);
+    assert.match(markup, /patient-postal-code/);
+    assert.match(markup, /patient-address-number/);
+    await form.handleSubmit({ preventDefault() {} });
+
+    const create = calls.find(({ options }) => options.method === "POST");
+    assert.deepEqual(JSON.parse(create.options.body), {
+      full_name: "",
+      birth_date: null,
+      sex: "",
+      cpf: null,
+      phone: null,
+      email: null,
+    });
+    assert.equal(Object.hasOwn(JSON.parse(create.options.body), "record_number"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
     await vite.close();
   }
 });

@@ -12,13 +12,22 @@ export default function PatientForm({
 }) {
   const {
     birthDate, cpf, editing, email, fieldErrors, fullName, handleSubmit,
-    nameInput, phone, saveError, saving, setBirthDate, setCpf, setEmail,
-    setFullName, setPhone, setSex, sex,
+    nameInput, phone, recordNumber, saveError, saving, setBirthDate, setCpf,
+    setEmail, setFullName, setPhone, setSex, sex,
   } = form;
+
+  const hasRecordNumber = typeof recordNumber === "string" && recordNumber.trim() !== "";
 
   return (
     <form className="patient-create" aria-labelledby="patients-title" onSubmit={handleSubmit}>
       <div className="patient-create__fields">
+        {(!editing || hasRecordNumber) && (
+          <FormField className="patient-create__field" label="Número do prontuário" htmlFor="patient-record-number">
+            <TextField id="patient-record-number" type="text" defaultValue={recordNumber || ""}
+              placeholder={editing ? undefined : "Gerado após salvar"}
+              autoComplete="off" readOnly aria-readonly="true" disabled={saving || busy} />
+          </FormField>
+        )}
         <FormField className="patient-create__field" label="Nome completo" htmlFor="patient-full-name"
           error={fieldErrors.full_name} errorId="patient-full-name-error">
           <TextField ref={nameInput} id="patient-full-name" required name="full_name" type="text"
@@ -61,6 +70,30 @@ export default function PatientForm({
             disabled={saving || busy} onChange={(event) => setEmail(event.target.value)} aria-invalid={Boolean(fieldErrors.email)}
             aria-describedby={fieldErrors.email ? "patient-email-error" : undefined} />
         </FormField>
+        <section className="patient-create__section" aria-labelledby="patient-address-title"
+          aria-describedby="patient-address-note">
+          <h3 id="patient-address-title" className="patient-create__section-title">Endereço</h3>
+          <p id="patient-address-note" className="patient-create__section-note">
+            O salvamento do endereço será habilitado em uma próxima etapa.
+          </p>
+          <div className="patient-create__section-fields">
+            <FormField className="patient-create__field" label="CEP" htmlFor="patient-postal-code">
+              <TextField id="patient-postal-code" type="text" inputMode="numeric"
+                autoComplete="postal-code" disabled={saving || busy} />
+            </FormField>
+            <FormField className="patient-create__field" label="Endereço" htmlFor="patient-address">
+              <TextField id="patient-address" type="text" autoComplete="address-line1"
+                disabled={saving || busy} />
+            </FormField>
+            <FormField className="patient-create__field" label="Número" htmlFor="patient-address-number">
+              <TextField id="patient-address-number" type="text" disabled={saving || busy} />
+            </FormField>
+            <FormField className="patient-create__field" label="Cidade" htmlFor="patient-city">
+              <TextField id="patient-city" type="text" autoComplete="address-level2"
+                disabled={saving || busy} />
+            </FormField>
+          </div>
+        </section>
       </div>
       {saveError && <p className="patient-create__error" role="alert">{saveError}</p>}
       <div className="patient-create__actions">
