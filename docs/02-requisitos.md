@@ -37,3 +37,13 @@
 - Financeiro;
 - Backup;
 - Instalador.
+
+### Agenda frontend-only futura
+
+- Calendário navegável iniciado no dia atual, com navegação para datas passadas
+  e futuras;
+- Visualizações diária e semanal;
+- Lista de agendamentos.
+
+Esta etapa futura cobre somente a interface. Fonte dos dados, API e operações
+de agendamento permanecem dependências de etapas posteriores.

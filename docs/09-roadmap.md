@@ -424,3 +424,17 @@
 - Adendos avançados
 - Instalador completo
 - Recursos avançados de produção
+
+## Escopo funcional sem versão atribuída
+
+### Agenda frontend-only futura
+
+- Calendário iniciado no dia atual e navegável entre datas passadas e futuras;
+- Visualizações diária e semanal;
+- Lista de agendamentos;
+- Esta etapa é somente de interface. A origem dos dados e as operações de
+  agendamento continuam dependentes das etapas futuras de Agenda e
+  Agendamentos.
+
+O registro deste escopo não altera o status das versões concluídas nem marca
+funcionalidades de Agenda ou Agendamentos como implementadas.
